@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intermediate DevOps - 3-Day Course</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/black.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/monokai.css">
+    <style>
+        :root {
+            --united-blue: #0033A0;
+            --united-light-blue: #00B2E2;
+            --united-gold: #FFD700;
+            --united-white: #FFFFFF;
+            --united-gray: #6B7280;
+        }
+
+        .reveal { background: linear-gradient(135deg, #0a1628 0%, #1a2d4a 100%); }
+        .reveal h1, .reveal h2, .reveal h3 { text-transform: none; color: var(--united-light-blue); }
+        .reveal h1 { color: var(--united-white); }
+        .reveal section { text-align: left; }
+        .reveal section.center { text-align: center; }
+        .reveal pre { width: 100%; }
+        .reveal code { background: #1e3a5f; padding: 2px 8px; border-radius: 3px; }
+        .united-logo { color: var(--united-light-blue); font-weight: bold; }
+        .highlight { color: var(--united-light-blue); }
+        .highlight-gold { color: var(--united-gold); }
+
+        .topic-cicd { color: #60A5FA; }
+        .topic-iac { color: #34D399; }
+        .topic-security { color: #F472B6; }
+        .topic-docker { color: #A78BFA; }
+        .topic-k8s { color: #FBBF24; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+        .small-text { font-size: 0.65em; }
+        .tiny-text { font-size: 0.55em; }
+
+        .reveal h1 { font-size: 2.2em; margin-bottom: 0.5em; }
+        .reveal h2 { font-size: 1.6em; margin-bottom: 0.5em; margin-top: 0; }
+        .reveal h3 { font-size: 1.2em; margin-top: 1.2rem; margin-bottom: 0.6rem; }
+        .reveal h4 { font-size: 1em; margin-top: 1rem; margin-bottom: 0.4rem; }
+        .reveal ul, .reveal ol { margin-top: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85em; }
+        .reveal li { margin-bottom: 0.3rem; line-height: 1.3; }
+        .reveal p { margin: 0.5rem 0; font-size: 0.85em; line-height: 1.4; }
+
+        .reveal .slides section {
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .demo-slide { background: linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%); border: 3px solid var(--united-light-blue); }
+        .demo-slide h2 { color: var(--united-light-blue); }
+
+        .topic-card {
+            background: rgba(0, 178, 226, 0.1);
+            border-left: 4px solid var(--united-light-blue);
+            padding: 0.6rem;
+            margin: 0.4rem 0;
+            font-size: 0.85em;
+        }
+        .topic-card ul, .topic-card ol { margin: 0.3rem 0; }
+        .topic-card li { margin-bottom: 0.2rem; }
+
+        .lab-slide {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+            border: 3px solid #34D399;
+        }
+        .lab-slide h2 { color: #34D399; }
+
+        .reveal table {
+            font-size: 0.7em;
+            margin: 0.5rem 0;
+        }
+        .reveal table td, .reveal table th {
+            padding: 0.3rem 0.5rem;
+        }
+
+        .day-header {
+            background: var(--united-blue);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .code-block {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.7em;
+            overflow-x: auto;
+        }
+
+        .command { color: #60A5FA; }
+        .string { color: #34D399; }
+        .comment { color: #6B7280; }
+        .keyword { color: #F472B6; }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Title Slide -->
+            <section class="center">
+                <h1 class="united-logo">Intermediate DevOps</h1>
+                <h3>Building Practical Skills in CI/CD, IaC, Containers & Kubernetes</h3>
+                <p style="margin-top: 2rem; color: var(--united-gray);">3-Day Hands-On Course</p>
+            </section>
+
+            <!-- Course Overview -->
+            <section>
+                <h2>Course Overview</h2>
+                <p>This Intermediate DevOps course is designed for individuals with basic IT or development experience looking to build practical skills in key DevOps areas.</p>
+
+                <h3>What You'll Learn</h3>
+                <div class="two-column small-text">
+                    <div>
+                        <ul>
+                            <li>Design and implement foundational CI/CD pipelines</li>
+                            <li>Apply Infrastructure as Code (IaC) for repeatable provisioning</li>
+                            <li>Securely manage credentials within workflows</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <ul>
+                            <li>Containerize applications using Docker</li>
+                            <li>Deploy and manage applications on Kubernetes</li>
+                            <li>Implement DevOps best practices</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="topic-card" style="margin-top: 1rem;">
+                    <p><strong>Course Philosophy:</strong> 70% hands-on labs and exercises, 30% expert-led instruction</p>
+                </div>
+            </section>
+
+            <!-- Agenda -->
+            <section>
+                <h2>3-Day Agenda</h2>
+                <div class="three-column small-text">
+                    <div class="topic-card">
+                        <h4 class="topic-cicd">Day 1</h4>
+                        <ul>
+                            <li>CI/CD Concepts & Benefits</li>
+                            <li>Pipeline Creation</li>
+                            <li>Build, Test, Deploy Stages</li>
+                            <li>Automated Testing Strategies</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4 class="topic-iac">Day 2</h4>
+                        <ul>
+                            <li>Infrastructure as Code</li>
+                            <li>Terraform/Ansible Basics</li>
+                            <li>Credential Management</li>
+                            <li>Secrets Management</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4 class="topic-docker">Day 3</h4>
+                        <ul>
+                            <li>Docker Containerization</li>
+                            <li>Building & Managing Images</li>
+                            <li>Kubernetes Fundamentals</li>
+                            <li>Deploying to K8s</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prerequisites -->
+            <section>
+                <h2>Prerequisites & Objectives</h2>
+
+                <h3>What You Should Know</h3>
+                <ul>
+                    <li>Basic IT and software development experience</li>
+                    <li>Some experience with scripting or programming</li>
+                    <li>Exposure to basic DevOps principles</li>
+                </ul>
+
+                <h3>After This Course, You Will Be Able To:</h3>
+                <ul>
+                    <li class="fragment">Design and implement a foundational CI/CD pipeline</li>
+                    <li class="fragment">Provision infrastructure in a repeatable, version-controlled manner</li>
+                    <li class="fragment">Implement secure practices for handling sensitive information</li>
+                    <li class="fragment">Use Docker for packaging applications into containers</li>
+                    <li class="fragment">Deploy and manage containerized applications on Kubernetes</li>
+                </ul>
+            </section>
+
+            <!-- DAY 1: CI/CD -->
+            <section class="center">
+                <div class="day-header">
+                    <h3 style="margin: 0; color: white;">Day 1</h3>
+                </div>
+                <h1 class="topic-cicd">CI/CD and Basic Pipelines</h1>
+            </section>
+
+            <!-- What is CI/CD -->
+            <section>
+                <h2 class="topic-cicd">What is CI/CD?</h2>
+
+                <div class="two-column">
+                    <div>
+                        <h3>Continuous Integration (CI)</h3>
+                        <ul class="small-text">
+                            <li class="fragment">Developers frequently merge code changes into a shared repository</li>
+                            <li class="fragment">Each integration triggers automated builds and tests</li>
+                            <li class="fragment">Detects integration issues early</li>
+                            <li class="fragment">Ensures code quality through automation</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Continuous Delivery/Deployment (CD)</h3>
+                        <ul class="small-text">
+                            <li class="fragment">Automates release process after CI</li>
+                            <li class="fragment"><strong>Delivery:</strong> Automated release to staging</li>
+                            <li class="fragment"><strong>Deployment:</strong> Automated release to production</li>
+                            <li class="fragment">Reduces manual intervention and human error</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="topic-card fragment">
+                    <p><strong>Key Principle:</strong> "If it hurts, do it more often" - Frequent small releases are safer than infrequent large ones</p>
+                </div>
+            </section>
+
+            <!-- CI/CD Benefits -->
+            <section>
+                <h2 class="topic-cicd">Benefits of CI/CD</h2>
+
+                <div class="three-column small-text">
+                    <div class="topic-card">
+                        <h4>Speed</h4>
+                        <ul>
+                            <li>Faster time to market</li>
+                            <li>Rapid feedback loops</li>
+                            <li>Quick bug detection</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4>Quality</h4>
+                        <ul>
+                            <li>Automated testing</li>
+                            <li>Consistent builds</li>
+                            <li>Reduced human error</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4>Reliability</h4>
+                        <ul>
+                            <li>Repeatable processes</li>
+                            <li>Version control</li>
+                            <li>Rollback capability</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="fragment">Business Impact</h3>
+                <ul class="fragment">
+                    <li><span class="highlight">46x</span> more frequent deployments (DORA research)</li>
+                    <li><span class="highlight">440x</span> faster lead time from commit to deploy</li>
+                    <li><span class="highlight">5x</span> lower change failure rate</li>
+                    <li><span class="highlight">170x</span> faster mean time to recovery</li>
+                </ul>
+            </section>
+
+            <!-- CI/CD Pipeline Stages -->
+            <section>
+                <h2 class="topic-cicd">Pipeline Stages</h2>
+                <p>A typical CI/CD pipeline consists of these core stages:</p>
+
+                <div style="display: flex; justify-content: space-between; margin: 1.5rem 0;">
+                    <div class="topic-card" style="flex: 1; margin: 0 0.25rem; text-align: center;">
+                        <h4>1. Source</h4>
+                        <p class="tiny-text">Code commit triggers pipeline</p>
+                    </div>
+                    <div class="topic-card" style="flex: 1; margin: 0 0.25rem; text-align: center;">
+                        <h4>2. Build</h4>
+                        <p class="tiny-text">Compile code, create artifacts</p>
+                    </div>
+                    <div class="topic-card" style="flex: 1; margin: 0 0.25rem; text-align: center;">
+                        <h4>3. Test</h4>
+                        <p class="tiny-text">Run automated tests</p>
+                    </div>
+                    <div class="topic-card" style="flex: 1; margin: 0 0.25rem; text-align: center;">
+                        <h4>4. Deploy</h4>
+                        <p class="tiny-text">Release to environment</p>
+                    </div>
+                </div>
+
+                <h3>Stage Details</h3>
+                <ul class="small-text">
+                    <li><strong>Source:</strong> Version control (Git), webhooks, branch strategies</li>
+                    <li><strong>Build:</strong> Dependency installation, compilation, artifact creation</li>
+                    <li><strong>Test:</strong> Unit tests, integration tests, security scans</li>
+                    <li><strong>Deploy:</strong> Staging, production, blue-green, canary releases</li>
+                </ul>
+            </section>
+
+            <!-- Popular CI/CD Tools -->
+            <section>
+                <h2 class="topic-cicd">Popular CI/CD Tools</h2>
+
+                <div class="two-column">
+                    <div>
+                        <h3>Jenkins</h3>
+                        <ul class="small-text">
+                            <li>Open-source, self-hosted</li>
+                            <li>Highly customizable with plugins</li>
+                            <li>Large community and ecosystem</li>
+                            <li>Pipeline as code (Jenkinsfile)</li>
+                        </ul>
+
+                        <h3>GitLab CI</h3>
+                        <ul class="small-text">
+                            <li>Integrated with GitLab repository</li>
+                            <li>YAML-based configuration</li>
+                            <li>Built-in container registry</li>
+                            <li>Auto DevOps features</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>GitHub Actions</h3>
+                        <ul class="small-text">
+                            <li>Native GitHub integration</li>
+                            <li>Marketplace with reusable actions</li>
+                            <li>Matrix builds</li>
+                            <li>Easy secrets management</li>
+                        </ul>
+
+                        <h3>Others</h3>
+                        <ul class="small-text">
+                            <li>CircleCI, Travis CI</li>
+                            <li>Azure DevOps</li>
+                            <li>AWS CodePipeline</li>
+                            <li>Tekton, ArgoCD</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Jenkins Pipeline Example -->
+            <section>
+                <h2 class="topic-cicd">Jenkins Pipeline Example</h2>
+
+                <div class="code-block">
+                    <pre><span class="comment">// Jenkinsfile</span>
+<span class="keyword">pipeline</span> {
+    <span class="keyword">agent</span> any
+
+    <span class="keyword">stages</span> {
+        <span class="keyword">stage</span>(<span class="string">'Build'</span>) {
+            <span class="keyword">steps</span> {
+                <span class="command">sh</span> <span class="string">'npm install'</span>
+                <span class="command">sh</span> <span class="string">'npm run build'</span>
+            }
+        }
+
+        <span class="keyword">stage</span>(<span class="string">'Test'</span>) {
+            <span class="keyword">steps</span> {
+                <span class="command">sh</span> <span class="string">'npm test'</span>
+            }
+        }
+
+        <span class="keyword">stage</span>(<span class="string">'Deploy'</span>) {
+            <span class="keyword">when</span> { <span class="keyword">branch</span> <span class="string">'main'</span> }
+            <span class="keyword">steps</span> {
+                <span class="command">sh</span> <span class="string">'./deploy.sh'</span>
+            }
+        }
+    }
+}</pre>
+                </div>
+            </section>
+
+            <!-- GitLab CI Example -->
+            <section>
+                <h2 class="topic-cicd">GitLab CI Example</h2>
+
+                <div class="code-block">
+                    <pre><span class="comment"># .gitlab-ci.yml</span>
+<span class="keyword">stages</span>:
+  - build
+  - test
+  - deploy
+
+<span class="keyword">build</span>:
+  <span class="keyword">stage</span>: build
+  <span class="keyword">script</span>:
+    - npm install
+    - npm run build
+  <span class="keyword">artifacts</span>:
+    <span class="keyword">paths</span>:
+      - dist/
+
+<span class="keyword">test</span>:
+  <span class="keyword">stage</span>: test
+  <span class="keyword">script</span>:
+    - npm test
+
+<span class="keyword">deploy</span>:
+  <span class="keyword">stage</span>: deploy
+  <span class="keyword">script</span>:
+    - ./deploy.sh
+  <span class="keyword">only</span>:
+    - main</pre>
+                </div>
+            </section>
+
+            <!-- Automated Testing Strategies -->
+            <section>
+                <h2 class="topic-cicd">Automated Testing Strategies</h2>
+
+                <h3>Testing Pyramid</h3>
+                <div class="two-column">
+                    <div>
+                        <ul class="small-text">
+                            <li class="fragment"><strong>Unit Tests (Base):</strong> Fast, isolated, test individual functions</li>
+                            <li class="fragment"><strong>Integration Tests (Middle):</strong> Test component interactions</li>
+                            <li class="fragment"><strong>E2E Tests (Top):</strong> Full user workflows, slower but comprehensive</li>
+                        </ul>
+                    </div>
+                    <div class="fragment">
+                        <div class="topic-card">
+                            <p style="text-align: center; font-size: 0.8em;">
+                                🔺 E2E (Few)<br>
+                                🔷 Integration (Some)<br>
+                                🟦🟦🟦 Unit (Many)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="fragment">Additional Testing Types</h3>
+                <ul class="small-text fragment">
+                    <li><strong>Static Analysis:</strong> Linting, code quality checks</li>
+                    <li><strong>Security Scanning:</strong> SAST, dependency vulnerability checks</li>
+                    <li><strong>Performance Testing:</strong> Load testing, stress testing</li>
+                    <li><strong>Smoke Tests:</strong> Quick sanity checks after deployment</li>
+                </ul>
+            </section>
+
+            <!-- Best Practices -->
+            <section>
+                <h2 class="topic-cicd">CI/CD Best Practices</h2>
+
+                <div class="two-column small-text">
+                    <div>
+                        <h3>Do</h3>
+                        <ul>
+                            <li class="fragment">Commit code frequently (at least daily)</li>
+                            <li class="fragment">Keep builds fast (< 10 minutes ideal)</li>
+                            <li class="fragment">Fix broken builds immediately</li>
+                            <li class="fragment">Use feature branches and pull requests</li>
+                            <li class="fragment">Automate everything possible</li>
+                            <li class="fragment">Version your pipeline configuration</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Avoid</h3>
+                        <ul>
+                            <li class="fragment">Long-lived feature branches</li>
+                            <li class="fragment">Manual steps in the pipeline</li>
+                            <li class="fragment">Skipping tests to deploy faster</li>
+                            <li class="fragment">Deploying on Fridays (when starting out)</li>
+                            <li class="fragment">Ignoring flaky tests</li>
+                            <li class="fragment">Storing secrets in code</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="topic-card fragment" style="margin-top: 1rem;">
+                    <p><strong>Remember:</strong> The goal is to make deployments boring, routine events - not stressful, risky operations.</p>
+                </div>
+            </section>
+
+            <!-- Lab: CI/CD -->
+            <section class="lab-slide">
+                <h2>Lab: Building Your First Pipeline</h2>
+
+                <h3>Exercise Objectives</h3>
+                <ul>
+                    <li>Set up a basic CI/CD pipeline</li>
+                    <li>Configure build, test, and deploy stages</li>
+                    <li>Trigger pipeline on code commits</li>
+                    <li>View pipeline execution and logs</li>
+                </ul>
+
+                <h3>You Will Learn</h3>
+                <ul>
+                    <li>Pipeline configuration syntax</li>
+                    <li>Stage dependencies and ordering</li>
+                    <li>Artifact management</li>
+                    <li>Environment-specific deployments</li>
+                </ul>
+            </section>
+
+            <!-- DAY 2: Infrastructure as Code -->
+            <section class="center">
+                <div class="day-header">
+                    <h3 style="margin: 0; color: white;">Day 2</h3>
+                </div>
+                <h1 class="topic-iac">Infrastructure as Code</h1>
+            </section>
+
+            <!-- What is IaC -->
+            <section>
+                <h2 class="topic-iac">What is Infrastructure as Code?</h2>
+
+                <p>Managing and provisioning infrastructure through machine-readable definition files rather than manual processes.</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>Traditional (Manual)</h3>
+                        <ul class="small-text">
+                            <li>Click through web consoles</li>
+                            <li>SSH into servers to configure</li>
+                            <li>Document steps in wikis</li>
+                            <li>Configuration drift over time</li>
+                            <li>Hard to replicate environments</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Infrastructure as Code</h3>
+                        <ul class="small-text">
+                            <li>Define infrastructure in code files</li>
+                            <li>Version control all changes</li>
+                            <li>Automated provisioning</li>
+                            <li>Consistent, repeatable deployments</li>
+                            <li>Self-documenting infrastructure</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="topic-card fragment">
+                    <p><strong>Key Principle:</strong> Treat infrastructure the same way you treat application code - version it, review it, test it.</p>
+                </div>
+            </section>
+
+            <!-- IaC Benefits -->
+            <section>
+                <h2 class="topic-iac">Benefits of Infrastructure as Code</h2>
+
+                <div class="three-column small-text">
+                    <div class="topic-card">
+                        <h4>Consistency</h4>
+                        <ul>
+                            <li>Same config = same result</li>
+                            <li>Eliminate configuration drift</li>
+                            <li>Reproducible environments</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4>Speed</h4>
+                        <ul>
+                            <li>Provision in minutes</li>
+                            <li>Clone environments easily</li>
+                            <li>Rapid disaster recovery</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4>Safety</h4>
+                        <ul>
+                            <li>Code review changes</li>
+                            <li>Rollback capability</li>
+                            <li>Audit trail via Git</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="fragment">Additional Benefits</h3>
+                <ul class="fragment small-text">
+                    <li><strong>Cost Savings:</strong> Automate repetitive tasks, reduce human error</li>
+                    <li><strong>Documentation:</strong> Code IS the documentation</li>
+                    <li><strong>Testing:</strong> Validate infrastructure before deployment</li>
+                    <li><strong>Collaboration:</strong> Teams can contribute and review changes</li>
+                </ul>
+            </section>
+
+            <!-- IaC Approaches -->
+            <section>
+                <h2 class="topic-iac">IaC Approaches</h2>
+
+                <div class="two-column">
+                    <div>
+                        <h3>Declarative</h3>
+                        <ul class="small-text">
+                            <li>Define desired end state</li>
+                            <li>Tool figures out how to achieve it</li>
+                            <li>Idempotent by design</li>
+                            <li>Examples: Terraform, CloudFormation</li>
+                        </ul>
+                        <div class="code-block" style="font-size: 0.6em;">
+                            <pre><span class="comment"># Declare what you want</span>
+<span class="keyword">resource</span> "aws_instance" "web" {
+  ami           = "ami-123"
+  instance_type = "t2.micro"
+}</pre>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Imperative</h3>
+                        <ul class="small-text">
+                            <li>Define step-by-step commands</li>
+                            <li>Explicit control over process</li>
+                            <li>Must handle idempotency</li>
+                            <li>Examples: Ansible, Scripts</li>
+                        </ul>
+                        <div class="code-block" style="font-size: 0.6em;">
+                            <pre><span class="comment"># Define how to do it</span>
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present
+- name: Start nginx
+  service:
+    name: nginx
+    state: started</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Terraform Introduction -->
+            <section>
+                <h2 class="topic-iac">Introduction to Terraform</h2>
+
+                <p>Terraform is an open-source IaC tool by HashiCorp that enables you to define and provision infrastructure using a declarative configuration language.</p>
+
+                <h3>Key Concepts</h3>
+                <ul class="small-text">
+                    <li class="fragment"><strong>Providers:</strong> Plugins that interact with APIs (AWS, Azure, GCP, etc.)</li>
+                    <li class="fragment"><strong>Resources:</strong> Infrastructure components (instances, networks, databases)</li>
+                    <li class="fragment"><strong>State:</strong> Terraform's record of managed infrastructure</li>
+                    <li class="fragment"><strong>Plan:</strong> Preview changes before applying</li>
+                    <li class="fragment"><strong>Apply:</strong> Execute the planned changes</li>
+                </ul>
+
+                <h3 class="fragment">Terraform Workflow</h3>
+                <div class="fragment" style="display: flex; justify-content: space-around; margin-top: 1rem;">
+                    <div class="topic-card" style="padding: 0.5rem 1rem;">Write</div>
+                    <div style="align-self: center;">→</div>
+                    <div class="topic-card" style="padding: 0.5rem 1rem;">Plan</div>
+                    <div style="align-self: center;">→</div>
+                    <div class="topic-card" style="padding: 0.5rem 1rem;">Apply</div>
+                </div>
+            </section>
+
+            <!-- Terraform Example -->
+            <section>
+                <h2 class="topic-iac">Terraform Example</h2>
+
+                <div class="code-block">
+                    <pre><span class="comment"># main.tf - Define an EC2 instance</span>
+
+<span class="keyword">terraform</span> {
+  <span class="keyword">required_providers</span> {
+    aws = {
+      source  = <span class="string">"hashicorp/aws"</span>
+      version = <span class="string">"~> 5.0"</span>
+    }
+  }
+}
+
+<span class="keyword">provider</span> <span class="string">"aws"</span> {
+  region = <span class="string">"us-east-1"</span>
+}
+
+<span class="keyword">resource</span> <span class="string">"aws_instance"</span> <span class="string">"web_server"</span> {
+  ami           = <span class="string">"ami-0c55b159cbfafe1f0"</span>
+  instance_type = <span class="string">"t2.micro"</span>
+
+  tags = {
+    Name        = <span class="string">"WebServer"</span>
+    Environment = <span class="string">"Development"</span>
+  }
+}</pre>
+                </div>
+            </section>
+
+            <!-- Terraform Commands -->
+            <section>
+                <h2 class="topic-iac">Essential Terraform Commands</h2>
+
+                <div class="code-block small-text">
+                    <pre><span class="comment"># Initialize working directory (download providers)</span>
+<span class="command">terraform init</span>
+
+<span class="comment"># Format configuration files</span>
+<span class="command">terraform fmt</span>
+
+<span class="comment"># Validate configuration syntax</span>
+<span class="command">terraform validate</span>
+
+<span class="comment"># Preview changes (dry run)</span>
+<span class="command">terraform plan</span>
+
+<span class="comment"># Apply changes to infrastructure</span>
+<span class="command">terraform apply</span>
+
+<span class="comment"># Show current state</span>
+<span class="command">terraform show</span>
+
+<span class="comment"># Destroy infrastructure</span>
+<span class="command">terraform destroy</span></pre>
+                </div>
+
+                <div class="topic-card fragment">
+                    <p><strong>Tip:</strong> Always run <code>terraform plan</code> before <code>apply</code> to review changes!</p>
+                </div>
+            </section>
+
+            <!-- Version Control for IaC -->
+            <section>
+                <h2 class="topic-iac">Version Control for Infrastructure</h2>
+
+                <h3>Why Version Control Infrastructure Code?</h3>
+                <ul class="small-text">
+                    <li class="fragment"><strong>History:</strong> Track all changes over time</li>
+                    <li class="fragment"><strong>Collaboration:</strong> Multiple team members can contribute</li>
+                    <li class="fragment"><strong>Review:</strong> Pull requests for infrastructure changes</li>
+                    <li class="fragment"><strong>Rollback:</strong> Revert to previous working state</li>
+                    <li class="fragment"><strong>Audit:</strong> Who changed what and when</li>
+                </ul>
+
+                <h3 class="fragment">Best Practices</h3>
+                <ul class="small-text fragment">
+                    <li>Use meaningful commit messages</li>
+                    <li>Branch protection for main/production</li>
+                    <li>Require code reviews for infrastructure changes</li>
+                    <li>Never commit secrets or credentials</li>
+                    <li>Use .gitignore for state files and sensitive data</li>
+                </ul>
+            </section>
+
+            <!-- Credential Management -->
+            <section class="center">
+                <h1 class="topic-security">Credential Management</h1>
+                <h3>Securing Secrets in CI/CD Workflows</h3>
+            </section>
+
+            <!-- Why Credential Management Matters -->
+            <section>
+                <h2 class="topic-security">Credential Management Challenges</h2>
+
+                <h3>Common Problems</h3>
+                <ul>
+                    <li class="fragment">Secrets hardcoded in source code</li>
+                    <li class="fragment">Credentials stored in plain text config files</li>
+                    <li class="fragment">Shared credentials across environments</li>
+                    <li class="fragment">No rotation policy for secrets</li>
+                    <li class="fragment">Secrets visible in CI/CD logs</li>
+                </ul>
+
+                <div class="topic-card fragment" style="border-left-color: #F472B6;">
+                    <p><strong>Real-World Impact:</strong> Exposed credentials are one of the most common causes of security breaches. One leaked API key can compromise entire systems.</p>
+                </div>
+            </section>
+
+            <!-- Secrets Management Solutions -->
+            <section>
+                <h2 class="topic-security">Secrets Management Solutions</h2>
+
+                <div class="two-column small-text">
+                    <div>
+                        <h3>CI/CD Platform Secrets</h3>
+                        <ul>
+                            <li>GitHub Secrets</li>
+                            <li>GitLab CI Variables</li>
+                            <li>Jenkins Credentials</li>
+                            <li>Environment variables (masked)</li>
+                        </ul>
+
+                        <h3>Dedicated Tools</h3>
+                        <ul>
+                            <li>HashiCorp Vault</li>
+                            <li>AWS Secrets Manager</li>
+                            <li>Azure Key Vault</li>
+                            <li>CyberArk, 1Password</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Best Practices</h3>
+                        <ul>
+                            <li class="fragment">Never commit secrets to version control</li>
+                            <li class="fragment">Use environment-specific credentials</li>
+                            <li class="fragment">Implement least privilege access</li>
+                            <li class="fragment">Rotate secrets regularly</li>
+                            <li class="fragment">Audit secret access</li>
+                            <li class="fragment">Use short-lived credentials when possible</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Using Secrets in Pipelines -->
+            <section>
+                <h2 class="topic-security">Using Secrets in Pipelines</h2>
+
+                <h3>GitHub Actions Example</h3>
+                <div class="code-block small-text">
+                    <pre><span class="keyword">name</span>: Deploy
+<span class="keyword">on</span>: push
+
+<span class="keyword">jobs</span>:
+  <span class="keyword">deploy</span>:
+    runs-on: ubuntu-latest
+    <span class="keyword">steps</span>:
+      - uses: actions/checkout@v3
+
+      - name: Deploy to Server
+        <span class="keyword">env</span>:
+          <span class="comment"># Reference secrets from repository settings</span>
+          API_KEY: ${{ secrets.API_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          ./deploy.sh</pre>
+                </div>
+
+                <div class="topic-card fragment">
+                    <p><strong>Note:</strong> Secrets are automatically masked in logs. Never echo or print secret values!</p>
+                </div>
+            </section>
+
+            <!-- Lab: IaC -->
+            <section class="lab-slide">
+                <h2>Lab: Infrastructure as Code with Terraform</h2>
+
+                <h3>Exercise Objectives</h3>
+                <ul>
+                    <li>Write Terraform configuration for basic infrastructure</li>
+                    <li>Use terraform init, plan, and apply commands</li>
+                    <li>Manage infrastructure state</li>
+                    <li>Version control your infrastructure code</li>
+                </ul>
+
+                <h3>You Will Learn</h3>
+                <ul>
+                    <li>HCL (HashiCorp Configuration Language) syntax</li>
+                    <li>Resource dependencies</li>
+                    <li>Variables and outputs</li>
+                    <li>State management best practices</li>
+                </ul>
+            </section>
+
+            <!-- DAY 3: Containers & Kubernetes -->
+            <section class="center">
+                <div class="day-header">
+                    <h3 style="margin: 0; color: white;">Day 3</h3>
+                </div>
+                <h1 class="topic-docker">Containerization & Kubernetes</h1>
+            </section>
+
+            <!-- What are Containers -->
+            <section>
+                <h2 class="topic-docker">What are Containers?</h2>
+
+                <p>Containers are lightweight, standalone packages that include everything needed to run an application: code, runtime, libraries, and system tools.</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>Virtual Machines</h3>
+                        <ul class="small-text">
+                            <li>Full OS per instance</li>
+                            <li>Gigabytes in size</li>
+                            <li>Minutes to start</li>
+                            <li>Hardware-level isolation</li>
+                            <li>More resource intensive</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Containers</h3>
+                        <ul class="small-text">
+                            <li>Shared OS kernel</li>
+                            <li>Megabytes in size</li>
+                            <li>Seconds to start</li>
+                            <li>Process-level isolation</li>
+                            <li>Lightweight and efficient</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="topic-card fragment">
+                    <p><strong>Key Benefit:</strong> "It works on my machine" → "It works in this container" - Consistent behavior across all environments.</p>
+                </div>
+            </section>
+
+            <!-- Introduction to Docker -->
+            <section>
+                <h2 class="topic-docker">Introduction to Docker</h2>
+
+                <p>Docker is the most popular containerization platform, making it easy to build, ship, and run containers.</p>
+
+                <h3>Key Concepts</h3>
+                <ul class="small-text">
+                    <li class="fragment"><strong>Image:</strong> Read-only template with instructions for creating a container</li>
+                    <li class="fragment"><strong>Container:</strong> Running instance of an image</li>
+                    <li class="fragment"><strong>Dockerfile:</strong> Script that defines how to build an image</li>
+                    <li class="fragment"><strong>Registry:</strong> Storage for Docker images (Docker Hub, ECR, etc.)</li>
+                    <li class="fragment"><strong>Volume:</strong> Persistent storage for container data</li>
+                </ul>
+
+                <h3 class="fragment">Docker Workflow</h3>
+                <div class="fragment" style="display: flex; justify-content: space-around; margin-top: 1rem;">
+                    <div class="topic-card" style="padding: 0.5rem 1rem;">Write Dockerfile</div>
+                    <div style="align-self: center;">→</div>
+                    <div class="topic-card" style="padding: 0.5rem 1rem;">Build Image</div>
+                    <div style="align-self: center;">→</div>
+                    <div class="topic-card" style="padding: 0.5rem 1rem;">Run Container</div>
+                </div>
+            </section>
+
+            <!-- Dockerfile Example -->
+            <section>
+                <h2 class="topic-docker">Writing a Dockerfile</h2>
+
+                <div class="code-block">
+                    <pre><span class="comment"># Use an official base image</span>
+<span class="keyword">FROM</span> node:18-alpine
+
+<span class="comment"># Set working directory</span>
+<span class="keyword">WORKDIR</span> /app
+
+<span class="comment"># Copy package files first (for caching)</span>
+<span class="keyword">COPY</span> package*.json ./
+
+<span class="comment"># Install dependencies</span>
+<span class="keyword">RUN</span> npm install --production
+
+<span class="comment"># Copy application code</span>
+<span class="keyword">COPY</span> . .
+
+<span class="comment"># Expose port</span>
+<span class="keyword">EXPOSE</span> 3000
+
+<span class="comment"># Define startup command</span>
+<span class="keyword">CMD</span> [<span class="string">"node"</span>, <span class="string">"server.js"</span>]</pre>
+                </div>
+            </section>
+
+            <!-- Docker Commands -->
+            <section>
+                <h2 class="topic-docker">Essential Docker Commands</h2>
+
+                <div class="code-block small-text">
+                    <pre><span class="comment"># Build an image from Dockerfile</span>
+<span class="command">docker build -t myapp:v1 .</span>
+
+<span class="comment"># List images</span>
+<span class="command">docker images</span>
+
+<span class="comment"># Run a container</span>
+<span class="command">docker run -d -p 3000:3000 --name myapp myapp:v1</span>
+
+<span class="comment"># List running containers</span>
+<span class="command">docker ps</span>
+
+<span class="comment"># View container logs</span>
+<span class="command">docker logs myapp</span>
+
+<span class="comment"># Execute command in container</span>
+<span class="command">docker exec -it myapp /bin/sh</span>
+
+<span class="comment"># Stop and remove container</span>
+<span class="command">docker stop myapp && docker rm myapp</span>
+
+<span class="comment"># Push image to registry</span>
+<span class="command">docker push myregistry/myapp:v1</span></pre>
+                </div>
+            </section>
+
+            <!-- Docker Best Practices -->
+            <section>
+                <h2 class="topic-docker">Docker Best Practices</h2>
+
+                <div class="two-column small-text">
+                    <div>
+                        <h3>Image Building</h3>
+                        <ul>
+                            <li class="fragment">Use official base images</li>
+                            <li class="fragment">Use specific version tags, not <code>:latest</code></li>
+                            <li class="fragment">Minimize layers, combine RUN commands</li>
+                            <li class="fragment">Order instructions for caching</li>
+                            <li class="fragment">Use multi-stage builds</li>
+                            <li class="fragment">Don't run as root</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Security</h3>
+                        <ul>
+                            <li class="fragment">Scan images for vulnerabilities</li>
+                            <li class="fragment">Don't store secrets in images</li>
+                            <li class="fragment">Use .dockerignore file</li>
+                            <li class="fragment">Keep images small (Alpine base)</li>
+                            <li class="fragment">Update base images regularly</li>
+                            <li class="fragment">Use read-only file systems when possible</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kubernetes Introduction -->
+            <section>
+                <h2 class="topic-k8s">Introduction to Kubernetes</h2>
+
+                <p>Kubernetes (K8s) is an open-source container orchestration platform that automates deployment, scaling, and management of containerized applications.</p>
+
+                <h3>Why Kubernetes?</h3>
+                <ul class="small-text">
+                    <li class="fragment"><strong>Orchestration:</strong> Manage thousands of containers across multiple hosts</li>
+                    <li class="fragment"><strong>Scaling:</strong> Automatically scale applications based on demand</li>
+                    <li class="fragment"><strong>Self-Healing:</strong> Restart failed containers, replace unhealthy nodes</li>
+                    <li class="fragment"><strong>Service Discovery:</strong> Built-in DNS and load balancing</li>
+                    <li class="fragment"><strong>Rollouts:</strong> Zero-downtime deployments and rollbacks</li>
+                </ul>
+
+                <div class="topic-card fragment">
+                    <p><strong>Note:</strong> Kubernetes manages containers at scale. Docker runs containers; Kubernetes orchestrates them.</p>
+                </div>
+            </section>
+
+            <!-- Kubernetes Architecture -->
+            <section>
+                <h2 class="topic-k8s">Kubernetes Architecture</h2>
+
+                <div class="two-column small-text">
+                    <div>
+                        <h3>Control Plane</h3>
+                        <ul>
+                            <li><strong>API Server:</strong> Frontend for K8s</li>
+                            <li><strong>etcd:</strong> Key-value store for cluster data</li>
+                            <li><strong>Scheduler:</strong> Assigns pods to nodes</li>
+                            <li><strong>Controller Manager:</strong> Manages cluster state</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Worker Nodes</h3>
+                        <ul>
+                            <li><strong>kubelet:</strong> Ensures containers are running</li>
+                            <li><strong>kube-proxy:</strong> Network proxy for services</li>
+                            <li><strong>Container Runtime:</strong> Docker, containerd, etc.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="fragment">Key Objects</h3>
+                <ul class="small-text fragment">
+                    <li><strong>Pod:</strong> Smallest deployable unit (one or more containers)</li>
+                    <li><strong>Deployment:</strong> Manages pod replicas and updates</li>
+                    <li><strong>Service:</strong> Network endpoint to access pods</li>
+                    <li><strong>ConfigMap/Secret:</strong> Configuration and sensitive data</li>
+                </ul>
+            </section>
+
+            <!-- Kubernetes Pod -->
+            <section>
+                <h2 class="topic-k8s">Pods</h2>
+
+                <p>A Pod is the smallest deployable unit in Kubernetes - a group of one or more containers that share storage and network.</p>
+
+                <div class="code-block">
+                    <pre><span class="comment"># pod.yaml</span>
+<span class="keyword">apiVersion</span>: v1
+<span class="keyword">kind</span>: Pod
+<span class="keyword">metadata</span>:
+  name: my-app
+  labels:
+    app: web
+<span class="keyword">spec</span>:
+  <span class="keyword">containers</span>:
+  - name: web
+    image: nginx:1.24
+    ports:
+    - containerPort: 80</pre>
+                </div>
+
+                <div class="code-block fragment" style="margin-top: 1rem;">
+                    <pre><span class="comment"># Create pod from YAML</span>
+<span class="command">kubectl apply -f pod.yaml</span>
+
+<span class="comment"># View pods</span>
+<span class="command">kubectl get pods</span></pre>
+                </div>
+            </section>
+
+            <!-- Kubernetes Deployment -->
+            <section>
+                <h2 class="topic-k8s">Deployments</h2>
+
+                <p>Deployments manage ReplicaSets and provide declarative updates, scaling, and rollback capabilities.</p>
+
+                <div class="code-block small-text">
+                    <pre><span class="comment"># deployment.yaml</span>
+<span class="keyword">apiVersion</span>: apps/v1
+<span class="keyword">kind</span>: Deployment
+<span class="keyword">metadata</span>:
+  name: my-app
+<span class="keyword">spec</span>:
+  <span class="keyword">replicas</span>: 3
+  <span class="keyword">selector</span>:
+    matchLabels:
+      app: web
+  <span class="keyword">template</span>:
+    <span class="keyword">metadata</span>:
+      labels:
+        app: web
+    <span class="keyword">spec</span>:
+      <span class="keyword">containers</span>:
+      - name: web
+        image: nginx:1.24
+        ports:
+        - containerPort: 80</pre>
+                </div>
+            </section>
+
+            <!-- Kubernetes Service -->
+            <section>
+                <h2 class="topic-k8s">Services</h2>
+
+                <p>Services provide stable network endpoints to access pods, with built-in load balancing.</p>
+
+                <div class="code-block">
+                    <pre><span class="comment"># service.yaml</span>
+<span class="keyword">apiVersion</span>: v1
+<span class="keyword">kind</span>: Service
+<span class="keyword">metadata</span>:
+  name: my-app-service
+<span class="keyword">spec</span>:
+  <span class="keyword">selector</span>:
+    app: web
+  <span class="keyword">ports</span>:
+  - port: 80
+    targetPort: 80
+  <span class="keyword">type</span>: LoadBalancer</pre>
+                </div>
+
+                <h3 class="fragment">Service Types</h3>
+                <ul class="small-text fragment">
+                    <li><strong>ClusterIP:</strong> Internal cluster access only (default)</li>
+                    <li><strong>NodePort:</strong> Expose on each node's IP at a static port</li>
+                    <li><strong>LoadBalancer:</strong> Expose via cloud load balancer</li>
+                </ul>
+            </section>
+
+            <!-- kubectl Commands -->
+            <section>
+                <h2 class="topic-k8s">Essential kubectl Commands</h2>
+
+                <div class="code-block small-text">
+                    <pre><span class="comment"># Apply configuration</span>
+<span class="command">kubectl apply -f deployment.yaml</span>
+
+<span class="comment"># Get resources</span>
+<span class="command">kubectl get pods</span>
+<span class="command">kubectl get deployments</span>
+<span class="command">kubectl get services</span>
+
+<span class="comment"># Describe resource details</span>
+<span class="command">kubectl describe pod my-app</span>
+
+<span class="comment"># View logs</span>
+<span class="command">kubectl logs my-app</span>
+
+<span class="comment"># Execute command in pod</span>
+<span class="command">kubectl exec -it my-app -- /bin/sh</span>
+
+<span class="comment"># Scale deployment</span>
+<span class="command">kubectl scale deployment my-app --replicas=5</span>
+
+<span class="comment"># Delete resources</span>
+<span class="command">kubectl delete -f deployment.yaml</span></pre>
+                </div>
+            </section>
+
+            <!-- Lab: Docker -->
+            <section class="lab-slide">
+                <h2>Lab: Containerizing Applications with Docker</h2>
+
+                <h3>Exercise Objectives</h3>
+                <ul>
+                    <li>Write a Dockerfile for a sample application</li>
+                    <li>Build and tag Docker images</li>
+                    <li>Run containers locally</li>
+                    <li>Push images to a container registry</li>
+                </ul>
+
+                <h3>You Will Learn</h3>
+                <ul>
+                    <li>Dockerfile best practices</li>
+                    <li>Image layering and caching</li>
+                    <li>Container networking basics</li>
+                    <li>Volume mounts for persistence</li>
+                </ul>
+            </section>
+
+            <!-- Lab: Kubernetes -->
+            <section class="lab-slide">
+                <h2>Lab: Deploying to Kubernetes</h2>
+
+                <h3>Exercise Objectives</h3>
+                <ul>
+                    <li>Deploy a containerized application to Kubernetes</li>
+                    <li>Create Deployments and Services</li>
+                    <li>Scale applications up and down</li>
+                    <li>Perform rolling updates</li>
+                </ul>
+
+                <h3>You Will Learn</h3>
+                <ul>
+                    <li>YAML manifest structure</li>
+                    <li>kubectl command usage</li>
+                    <li>Pod lifecycle management</li>
+                    <li>Service discovery and networking</li>
+                </ul>
+            </section>
+
+            <!-- Course Summary -->
+            <section>
+                <h2>Course Summary</h2>
+
+                <div class="three-column small-text">
+                    <div class="topic-card">
+                        <h4 class="topic-cicd">Day 1: CI/CD</h4>
+                        <ul>
+                            <li>CI/CD concepts and benefits</li>
+                            <li>Pipeline stages</li>
+                            <li>Jenkins/GitLab CI</li>
+                            <li>Automated testing</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4 class="topic-iac">Day 2: IaC & Security</h4>
+                        <ul>
+                            <li>Infrastructure as Code</li>
+                            <li>Terraform basics</li>
+                            <li>Version control for infra</li>
+                            <li>Secrets management</li>
+                        </ul>
+                    </div>
+                    <div class="topic-card">
+                        <h4 class="topic-docker">Day 3: Containers</h4>
+                        <ul>
+                            <li>Docker fundamentals</li>
+                            <li>Building images</li>
+                            <li>Kubernetes basics</li>
+                            <li>Deployments & Services</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="fragment">Key Takeaways</h3>
+                <ul class="fragment">
+                    <li>Automate everything: builds, tests, deployments, infrastructure</li>
+                    <li>Version control all code, including infrastructure</li>
+                    <li>Security is not optional - manage credentials properly</li>
+                    <li>Containers provide consistency across environments</li>
+                    <li>Kubernetes enables scalable, resilient applications</li>
+                </ul>
+            </section>
+
+            <!-- Next Steps -->
+            <section>
+                <h2>Next Steps</h2>
+
+                <h3>Continue Learning</h3>
+                <ul>
+                    <li>Practice with real projects in your environment</li>
+                    <li>Explore advanced CI/CD patterns (GitOps, feature flags)</li>
+                    <li>Learn Terraform modules and workspaces</li>
+                    <li>Study Kubernetes advanced concepts (Helm, operators)</li>
+                    <li>Explore observability (monitoring, logging, tracing)</li>
+                </ul>
+
+                <h3 class="fragment">Resources</h3>
+                <ul class="fragment small-text">
+                    <li>Kubernetes Documentation: kubernetes.io/docs</li>
+                    <li>Terraform Learn: learn.hashicorp.com/terraform</li>
+                    <li>Docker Documentation: docs.docker.com</li>
+                    <li>DevOps Roadmap: roadmap.sh/devops</li>
+                </ul>
+            </section>
+
+            <!-- Thank You -->
+            <section class="center">
+                <h1>Thank You!</h1>
+                <h3>Questions?</h3>
+                <p style="margin-top: 2rem; color: var(--united-gray);">Intermediate DevOps - 3-Day Course</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/notes/notes.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/highlight.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [ RevealNotes, RevealHighlight ]
+        });
+    </script>
+</body>
+</html>
