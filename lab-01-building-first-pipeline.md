@@ -11,7 +11,7 @@ In this hands-on lab, you will:
 
 ## Prerequisites
 
-- Ubuntu 22.04 VM (fresh installation)
+- Ubuntu 24.04 VM (fresh installation)
 - Terminal access to the VM
 - Basic familiarity with Linux commands
 
@@ -33,10 +33,10 @@ sudo apt-get update
 
 ### 1.2 Install Java (Required for Jenkins)
 
-Jenkins requires Java 11 or 17 to run. We'll install OpenJDK 17.
+Jenkins requires Java 21 or newer to run. We'll install OpenJDK 21.
 
 ```bash
-sudo apt-get install -y fontconfig openjdk-17-jre
+sudo apt-get install -y fontconfig openjdk-21-jre
 java -version
 ```
 
@@ -47,7 +47,7 @@ We'll install Jenkins from the official repository.
 ```bash
 # Add Jenkins repository key
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
 
 # Add Jenkins repository
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
@@ -130,8 +130,8 @@ git --version
 ### 2.2 Install Node.js (for our sample application)
 
 ```bash
-# Install Node.js 18.x LTS
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Install Node.js 20.x LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 node --version
 npm --version
