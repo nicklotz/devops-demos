@@ -550,14 +550,8 @@ ls -la ~/sample-app
 3. For **"SCM"**, select: **"Git"**
 4. For **"Repository URL"**, enter the path shown below:
 
-```bash
-echo "============================================"
-echo "Enter this path as Repository URL in Jenkins:"
-echo "============================================"
-echo ""
-echo "file:///home/training/sample-app"
-echo ""
-echo "============================================"
+```
+file:///home/training/sample-app
 ```
 
 5. For **"Branch Specifier"**, change to: `*/master`
