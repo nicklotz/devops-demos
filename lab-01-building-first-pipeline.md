@@ -555,7 +555,7 @@ echo "============================================"
 echo "Enter this path as Repository URL in Jenkins:"
 echo "============================================"
 echo ""
-echo "file:///home/ubuntu/sample-app"
+echo "file:///home/training/sample-app"
 echo ""
 echo "============================================"
 ```
