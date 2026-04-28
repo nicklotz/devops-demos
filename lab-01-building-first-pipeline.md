@@ -807,8 +807,8 @@ pipeline {
                         echo "Running security checks..."
                         sh '''
                             echo "Checking for hardcoded secrets..."
-                            ! grep -r "password\s*=\s*[\"']" src/ || echo "Warning: Possible hardcoded password"
-                            ! grep -r "api_key\s*=\s*[\"']" src/ || echo "Warning: Possible hardcoded API key"
+                            ! grep -r "password" src/ || echo "Warning: Possible hardcoded password"
+                            ! grep -r "api_key" src/ || echo "Warning: Possible hardcoded API key"
                             echo "Security check completed"
                         '''
                     }
