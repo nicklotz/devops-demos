@@ -71,7 +71,7 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable jenkins
-sudo systemctl start jenkins
+sudo systemctl restart jenkins
 
 # Wait for Jenkins to be ready
 echo "Waiting for Jenkins to start..."

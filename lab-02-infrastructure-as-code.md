@@ -12,7 +12,7 @@ In this hands-on lab, you will:
 
 ## Prerequisites
 
-- Ubuntu 22.04 VM (fresh installation)
+- Ubuntu 24.04 VM (fresh installation)
 - Terminal access to the VM
 - Basic familiarity with Linux commands and YAML
 
@@ -61,11 +61,8 @@ terraform version
 We'll install Ansible system-wide for use with sudo.
 
 ```bash
-# Install Python and pip
-sudo apt-get install -y python3 python3-pip sshpass
-
-# Install Ansible system-wide (needed for sudo with Docker)
-sudo pip3 install ansible
+# Install Ansible and dependencies
+sudo apt-get install -y python3 ansible sshpass
 
 # Verify installation
 ansible --version | head -5
