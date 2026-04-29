@@ -24,12 +24,6 @@ Approximately 90-120 minutes
 
 ## Part 1: Environment Setup
 
-### 1.1 Update the System
-
-```bash
-sudo apt-get update
-```
-
 ### 1.2 Install Terraform
 
 We'll install Terraform from HashiCorp's official repository.
