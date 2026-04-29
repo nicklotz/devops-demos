@@ -27,7 +27,7 @@ Approximately 90-120 minutes
 ### 1.1 Update the System
 
 ```bash
-sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get update
 ```
 
 ### 1.2 Install Terraform
