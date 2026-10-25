@@ -380,6 +380,18 @@ code ~/platform.kubeconfig
 In the Harness UI, open the `flightops` project and select **Secrets**, then **New Secret**.
 Enter the name `platform_kubeconfig`, paste the file content as the value, and select **Create Secret**.
 
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/01-create_secret-1.png" alt="Create the secret, step 1 of 4">
+
+<img src="img/05-terraform-pipeline/01-create_secret-2.png" alt="Create the secret, step 2 of 4">
+
+<img src="img/05-terraform-pipeline/01-create_secret-3.png" alt="Create the secret, step 3 of 4">
+
+<img src="img/05-terraform-pipeline/01-create_secret-4.png" alt="Create the secret, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_secret flightops platform_kubeconfig @~/platform.kubeconfig -->
 
 In the Harness platform, a Kubernetes cluster connector holds this kind of credential, and the platform also offers external secret managers.
@@ -465,6 +477,18 @@ In the Harness UI, open **Repositories** > **platform** > **Pipelines**, and sel
 Enter the name `infra`, keep the branch `main`, and set the YAML path to `.harness/infra.yaml`.
 Select **Create**.
 
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/02-create_pipeline-1.png" alt="Create the pipeline, step 1 of 4">
+
+<img src="img/05-terraform-pipeline/02-create_pipeline-2.png" alt="Create the pipeline, step 2 of 4">
+
+<img src="img/05-terraform-pipeline/02-create_pipeline-3.png" alt="Create the pipeline, step 3 of 4">
+
+<img src="img/05-terraform-pipeline/02-create_pipeline-4.png" alt="Create the pipeline, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_pipeline flightops/platform infra .harness/infra.yaml -->
 
 Harness adds a default trigger that runs the pipeline for pull request events.
@@ -475,6 +499,22 @@ The apply step needs a push to `main`, so the pipeline needs a push trigger as w
 Open the `infra` pipeline, select **Settings** > **Triggers** > **New Trigger**.
 Enter the name `push`, select the event **Branch updated**, and select **Create**.
 
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/03-add_trigger-1.png" alt="Add the trigger, step 1 of 6">
+
+<img src="img/05-terraform-pipeline/03-add_trigger-2.png" alt="Add the trigger, step 2 of 6">
+
+<img src="img/05-terraform-pipeline/03-add_trigger-3.png" alt="Add the trigger, step 3 of 6">
+
+<img src="img/05-terraform-pipeline/03-add_trigger-4.png" alt="Add the trigger, step 4 of 6">
+
+<img src="img/05-terraform-pipeline/03-add_trigger-5.png" alt="Add the trigger, step 5 of 6">
+
+<img src="img/05-terraform-pipeline/03-add_trigger-6.png" alt="Add the trigger, step 6 of 6">
+
+<!-- shots:end -->
+
 <!-- ui: add_trigger flightops/platform infra push branch_updated -->
 
 ### 4.5 Run it by hand
@@ -482,7 +522,22 @@ Enter the name `push`, select the event **Branch updated**, and select **Create*
 Select **Run**, keep the branch `main`, and start the run.
 Open the run and select each step to read its log.
 
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/04-run_pipeline-1.png" alt="Run the pipeline, step 1 of 2">
+
+<img src="img/05-terraform-pipeline/04-run_pipeline-2.png" alt="Run the pipeline, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: run_pipeline flightops/platform infra main -->
+
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/05-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
+
 <!-- ui: view_execution flightops/platform infra -->
 
 <!-- test
@@ -546,6 +601,14 @@ In the Harness UI, open **Repositories** > **platform** > **Pull Requests** > **
 Choose `raise-dev-pods` as the source branch and `main` as the target.
 Enter the title `Allow 12 pods in dev` and select **Create Pull Request**.
 
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/06-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/05-terraform-pipeline/06-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/platform raise-dev-pods main "Allow 12 pods in dev" -->
 
 The default trigger starts the `infra` pipeline for the pull request.
@@ -559,6 +622,12 @@ h_log flightops/platform infra plan | grep -q '1 to change'
 
 On the pull request page, open the **Checks** tab and select the `infra` check.
 Read the log of the `plan` step:
+
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/07-view_pr-1.png" alt="Open the pull request">
+
+<!-- shots:end -->
 
 <!-- ui: view_pr flightops/platform -->
 
@@ -584,6 +653,16 @@ Look for `-` (destroy) and `-/+` (replace) on objects that hold data.
 ### 5.4 Merge
 
 Select **Squash and merge**, then confirm.
+
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/08-merge_pr-1.png" alt="Merge the pull request, step 1 of 3">
+
+<img src="img/05-terraform-pipeline/08-merge_pr-2.png" alt="Merge the pull request, step 2 of 3">
+
+<img src="img/05-terraform-pipeline/08-merge_pr-3.png" alt="Merge the pull request, step 3 of 3">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/platform -->
 
@@ -646,6 +725,14 @@ kubectl -n flightops-dev patch resourcequota quota --type merge -p '{"spec":{"ha
 ### 6.2 Run the pipeline
 
 In the Harness UI, run the `infra` pipeline on `main` by hand, as in step 4.5.
+
+
+<!-- shots:begin -->
+<img src="img/05-terraform-pipeline/09-run_pipeline-1.png" alt="Run the pipeline, step 1 of 2">
+
+<img src="img/05-terraform-pipeline/09-run_pipeline-2.png" alt="Run the pipeline, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: run_pipeline flightops/platform infra main -->
 

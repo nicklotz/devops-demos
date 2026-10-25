@@ -727,6 +727,14 @@ The SBOM is in your home directory, not in the repository, so it is not part of 
 
 In Harness, open the **flight-status** repository and select **Pull Requests**, then **New Pull Request**. Choose `main` as the target branch and `feature/container` as the source branch. Enter the title `Add container build files` and create the pull request.
 
+
+<!-- shots:begin -->
+<img src="img/07-containers/01-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/07-containers/01-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status feature/container main "Add container build files" -->
 
 The `ci` pipeline runs for the pull request. It lints and tests the code. It does not build the image yet. Lab 09 adds the image build and the scan to the pipeline. Wait until the `ci` check shows success.
@@ -736,6 +744,14 @@ h_wait_pr_check flightops/flight-status ci success
 -->
 
 Review the files in the pull request, then merge it with **Squash and merge** and delete the source branch when Harness offers it.
+
+
+<!-- shots:begin -->
+<img src="img/07-containers/02-merge_pr-1.png" alt="Merge the pull request, step 1 of 2">
+
+<img src="img/07-containers/02-merge_pr-2.png" alt="Merge the pull request, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/flight-status -->
 

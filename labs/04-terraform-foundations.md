@@ -1221,6 +1221,16 @@ Select **Repositories**, then **New Repository**.
 Enter the name `platform`. Do not add a README, license or .gitignore, because you push existing files.
 Select **Create Repository**.
 
+
+<!-- shots:begin -->
+<img src="img/04-terraform-foundations/01-create_repo-1.png" alt="Create the repository, step 1 of 3">
+
+<img src="img/04-terraform-foundations/01-create_repo-2.png" alt="Create the repository, step 2 of 3">
+
+<img src="img/04-terraform-foundations/01-create_repo-3.png" alt="Create the repository, step 3 of 3">
+
+<!-- shots:end -->
+
 <!-- ui: create_repo flightops platform -->
 
 ### 6.2 Keep working files and state out of Git

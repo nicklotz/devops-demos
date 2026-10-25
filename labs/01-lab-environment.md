@@ -319,6 +319,16 @@ Open http://localhost:3000 in the browser on your lab machine. Sign in with:
 - User ID or email: `admin`
 - Password: `Harness-Lab-2026`
 
+
+<!-- shots:begin -->
+<img src="img/01-lab-environment/01-login-1.png" alt="Sign in to Harness, step 1 of 3">
+
+<img src="img/01-lab-environment/01-login-2.png" alt="Sign in to Harness, step 2 of 3">
+
+<img src="img/01-lab-environment/01-login-3.png" alt="Sign in to Harness, step 3 of 3">
+
+<!-- shots:end -->
+
 <!-- ui: login -->
 
 Take a minute to look around. In Harness Open Source, a **project** groups repositories, pipelines and secrets. The Harness platform that United uses has the same idea with more levels: an **account** contains **organizations**, and each organization contains **projects**. In both products, pipelines, secrets and access rights belong to a project.
@@ -329,7 +339,19 @@ Take a minute to look around. In Harness Open Source, a **project** groups repos
 
 A project groups everything that belongs to one product or team. You create one project for the flight status service and its infrastructure.
 
-In Harness, select **New Project**. You find it on the start page after sign-in, or in the project selector at the top of the left navigation. Enter `flightops` as the project name and select **Create Project**.
+In Harness, select **New Project**. You find it on the start page after sign-in, or in the project selector at the top of the left navigation. Enter `flightops` as the project name and select **Create Project**. Harness adds the project to the project list. Select `flightops` in the list to open it.
+
+
+<!-- shots:begin -->
+<img src="img/01-lab-environment/02-create_project-1.png" alt="Create the project, step 1 of 4">
+
+<img src="img/01-lab-environment/02-create_project-2.png" alt="Create the project, step 2 of 4">
+
+<img src="img/01-lab-environment/02-create_project-3.png" alt="Create the project, step 3 of 4">
+
+<img src="img/01-lab-environment/02-create_project-4.png" alt="Create the project, step 4 of 4">
+
+<!-- shots:end -->
 
 <!-- ui: create_project flightops -->
 
@@ -340,6 +362,16 @@ h_api GET /api/v1/spaces/flightops | jq -e '.identifier == "flightops"' >/dev/nu
 ### 5.2 Create the repository
 
 Inside the `flightops` project, open **Repositories** and select **New Repository**. Enter `flight-status` as the name. Leave the README, .gitignore and license options empty. You push existing code into this repository, and an empty repository avoids a merge between two unrelated histories. Keep `main` as the default branch and select **Create Repository**.
+
+
+<!-- shots:begin -->
+<img src="img/01-lab-environment/03-create_repo-1.png" alt="Create the repository, step 1 of 3">
+
+<img src="img/01-lab-environment/03-create_repo-2.png" alt="Create the repository, step 2 of 3">
+
+<img src="img/01-lab-environment/03-create_repo-3.png" alt="Create the repository, step 3 of 3">
+
+<!-- shots:end -->
 
 <!-- ui: create_repo flightops flight-status -->
 
@@ -431,6 +463,22 @@ Git talks to Harness over HTTP, and Harness needs to know who you are. Instead o
 
 In Harness, open your user menu (your avatar or initials at the bottom of the left navigation) and select **Profile**. In the **Personal access tokens** section, select **New token**. Name it `git`, choose an expiration of 30 days, and create it. Copy the token now. Harness shows it only once.
 
+
+<!-- shots:begin -->
+<img src="img/01-lab-environment/04-create_token-1.png" alt="Create a personal access token, step 1 of 6">
+
+<img src="img/01-lab-environment/04-create_token-2.png" alt="Create a personal access token, step 2 of 6">
+
+<img src="img/01-lab-environment/04-create_token-3.png" alt="Create a personal access token, step 3 of 6">
+
+<img src="img/01-lab-environment/04-create_token-4.png" alt="Create a personal access token, step 4 of 6">
+
+<img src="img/01-lab-environment/04-create_token-5.png" alt="Create a personal access token, step 5 of 6">
+
+<img src="img/01-lab-environment/04-create_token-6.png" alt="Create a personal access token, step 6 of 6">
+
+<!-- shots:end -->
+
 <!-- ui: create_token git -->
 
 ### 6.5 Store the token for Git
@@ -485,6 +533,12 @@ grep -q '@localhost' ~/.git-credentials
 ### 6.8 Look at the repository in Harness
 
 Reload the `flight-status` repository page in Harness. You should see the files, the content of the README, and one commit with your name.
+
+
+<!-- shots:begin -->
+<img src="img/01-lab-environment/05-browse-1.png" alt="The page in the browser">
+
+<!-- shots:end -->
 
 <!-- ui: browse http://localhost:3000/flightops/flight-status -->
 

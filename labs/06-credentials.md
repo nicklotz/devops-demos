@@ -212,6 +212,18 @@ In the Harness UI, open the `flightops` project and select **Secrets** > **New S
 Enter the name `demo_api_key` and the value `fs-demo-7Q2x9LmP4kV8`.
 Select **Create Secret**.
 
+
+<!-- shots:begin -->
+<img src="img/06-credentials/01-create_secret-1.png" alt="Create the secret, step 1 of 4">
+
+<img src="img/06-credentials/01-create_secret-2.png" alt="Create the secret, step 2 of 4">
+
+<img src="img/06-credentials/01-create_secret-3.png" alt="Create the secret, step 3 of 4">
+
+<img src="img/06-credentials/01-create_secret-4.png" alt="Create the secret, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_secret flightops demo_api_key fs-demo-7Q2x9LmP4kV8 -->
 
 ### 2.2 Use the secret in a step
@@ -297,6 +309,14 @@ git push -u origin feature/secret-demo
 
 Open a pull request from `feature/secret-demo` to `main` with the title `Call the partner API`, as in Lab 03.
 
+
+<!-- shots:begin -->
+<img src="img/06-credentials/02-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/06-credentials/02-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status feature/secret-demo main "Call the partner API" -->
 
 <!-- test
@@ -307,6 +327,12 @@ h_log flightops/flight-status ci callapi | grep -q 'fs-demo-7Q2x9LmP4kV8'
 ### 2.4 Read the log
 
 When the run finishes, open it and select the `callapi` step.
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/03-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
 
 <!-- ui: view_execution flightops/flight-status ci -->
 
@@ -421,6 +447,14 @@ Both show the same result.
 
 This change was a demonstration, so you do not merge it.
 On the pull request page, select **Close pull request**.
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/04-close_pr-1.png" alt="Close the pull request, step 1 of 2">
+
+<img src="img/06-credentials/04-close_pr-2.png" alt="Close the pull request, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: close_pr flightops/flight-status -->
 
@@ -605,6 +639,14 @@ git push -u origin deployers
 
 Open a pull request in the `platform` repository from `deployers` to `main`, titled `Add deployer service accounts`.
 
+
+<!-- shots:begin -->
+<img src="img/06-credentials/05-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/06-credentials/05-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/platform deployers main "Add deployer service accounts" -->
 
 <!-- test
@@ -615,6 +657,16 @@ h_log flightops/platform infra plan | grep -q '8 to add'
 Read the plan in the `infra` check.
 Check that it only adds objects, and that each Role has the rules from the table.
 Then select **Squash and merge**.
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/06-merge_pr-1.png" alt="Merge the pull request, step 1 of 3">
+
+<img src="img/06-credentials/06-merge_pr-2.png" alt="Merge the pull request, step 2 of 3">
+
+<img src="img/06-credentials/06-merge_pr-3.png" alt="Merge the pull request, step 3 of 3">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/platform -->
 
@@ -765,7 +817,32 @@ code ~/deployer-dev.kubeconfig ~/deployer-prod.kubeconfig
 - Name `dev_kubeconfig`, value: the content of `~/deployer-dev.kubeconfig`.
 - Name `prod_kubeconfig`, value: the content of `~/deployer-prod.kubeconfig`.
 
+
+<!-- shots:begin -->
+<img src="img/06-credentials/07-create_secret-1.png" alt="Create the secret, step 1 of 4">
+
+<img src="img/06-credentials/07-create_secret-2.png" alt="Create the secret, step 2 of 4">
+
+<img src="img/06-credentials/07-create_secret-3.png" alt="Create the secret, step 3 of 4">
+
+<img src="img/06-credentials/07-create_secret-4.png" alt="Create the secret, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_secret flightops dev_kubeconfig @~/deployer-dev.kubeconfig -->
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/08-create_secret-1.png" alt="Create the secret, step 1 of 4">
+
+<img src="img/06-credentials/08-create_secret-2.png" alt="Create the secret, step 2 of 4">
+
+<img src="img/06-credentials/08-create_secret-3.png" alt="Create the secret, step 3 of 4">
+
+<img src="img/06-credentials/08-create_secret-4.png" alt="Create the secret, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_secret flightops prod_kubeconfig @~/deployer-prod.kubeconfig -->
 
 The Lab 09 pipeline uses these two secrets.
@@ -780,6 +857,14 @@ Secret scanning stops a secret from being stored in Git in the first place.
 
 In the Harness UI, open **Repositories** > **flight-status** > **Settings** > **Security**.
 Turn on **Secret scanning** and save.
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/09-enable_secret_scanning-1.png" alt="Turn on secret scanning, step 1 of 2">
+
+<img src="img/06-credentials/09-enable_secret_scanning-2.png" alt="Turn on secret scanning, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: enable_secret_scanning flightops/flight-status -->
 
@@ -921,6 +1006,14 @@ git push -u origin rotate-dev-token
 
 Open a pull request from `rotate-dev-token` to `main` with the title `Rotate the dev deployer token`.
 
+
+<!-- shots:begin -->
+<img src="img/06-credentials/10-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/06-credentials/10-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/platform rotate-dev-token main "Rotate the dev deployer token" -->
 
 <!-- test
@@ -940,6 +1033,16 @@ Plan: 1 to add, 0 to change, 1 to destroy.
 ```
 
 A new name cannot be changed in place, so Terraform deletes `deployer-token-v1` and creates `deployer-token-v2`. Only the dev token changes. Merge the pull request.
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/11-merge_pr-1.png" alt="Merge the pull request, step 1 of 3">
+
+<img src="img/06-credentials/11-merge_pr-2.png" alt="Merge the pull request, step 2 of 3">
+
+<img src="img/06-credentials/11-merge_pr-3.png" alt="Merge the pull request, step 3 of 3">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/platform -->
 
@@ -998,6 +1101,18 @@ postgres   1/1     1            1           3h
 ### 5.6 Update the Harness secret
 
 In the Harness UI, open **Secrets** > `dev_kubeconfig`, edit it, paste the content of the new `~/deployer-dev.kubeconfig` as the value, and save.
+
+
+<!-- shots:begin -->
+<img src="img/06-credentials/12-update_secret-1.png" alt="Update the secret, step 1 of 4">
+
+<img src="img/06-credentials/12-update_secret-2.png" alt="Update the secret, step 2 of 4">
+
+<img src="img/06-credentials/12-update_secret-3.png" alt="Update the secret, step 3 of 4">
+
+<img src="img/06-credentials/12-update_secret-4.png" alt="Update the secret, step 4 of 4">
+
+<!-- shots:end -->
 
 <!-- ui: update_secret flightops dev_kubeconfig @~/deployer-dev.kubeconfig -->
 

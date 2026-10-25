@@ -91,6 +91,28 @@ mkdir -p ~/flight-status/.harness
 
 Create the file `~/flight-status/.harness/ci.yaml` in VS Code, paste the content below, and save it. Indent with spaces. YAML does not allow tabs.
 
+<!-- vscode:begin -->
+In VS Code, open the folder `~/flight-status` with **File** > **Open Folder** if it is not open yet. Then:
+
+1. In the Explorer, select the **New File** button next to the folder name.
+2. Type the path of the new file, `.harness/ci.yaml`, and press Enter.
+3. Copy the content with the copy button of the code block below. Click into the empty editor and paste with Ctrl+V.
+4. Save with Ctrl+S. The dot on the editor tab disappears when the file is saved.
+
+Create the other files in the labs the same way. For a file outside the open folder, select **File** > **New Text File**, paste the content, and save it with **File** > **Save As** under the path that the lab gives.
+
+<img src="img/vscode/vscode-new-file-1.png" alt="Create a file in VS Code, step 1 of 5">
+
+<img src="img/vscode/vscode-new-file-2.png" alt="Create a file in VS Code, step 2 of 5">
+
+<img src="img/vscode/vscode-new-file-3.png" alt="Create a file in VS Code, step 3 of 5">
+
+<img src="img/vscode/vscode-new-file-4.png" alt="Create a file in VS Code, step 4 of 5">
+
+<img src="img/vscode/vscode-new-file-5.png" alt="Create a file in VS Code, step 5 of 5">
+
+<!-- vscode:end -->
+
 <!-- file: ~/flight-status/.harness/ci.yaml -->
 ```yaml
 # Continuous integration for flight-status (Lab 02).
@@ -165,6 +187,18 @@ In Harness, open the `flight-status` repository and select **Pipelines**. Select
 
 Select **Create**. Harness opens the pipeline and shows your YAML.
 
+
+<!-- shots:begin -->
+<img src="img/02-first-ci-pipeline/01-create_pipeline-1.png" alt="Create the pipeline, step 1 of 4">
+
+<img src="img/02-first-ci-pipeline/01-create_pipeline-2.png" alt="Create the pipeline, step 2 of 4">
+
+<img src="img/02-first-ci-pipeline/01-create_pipeline-3.png" alt="Create the pipeline, step 3 of 4">
+
+<img src="img/02-first-ci-pipeline/01-create_pipeline-4.png" alt="Create the pipeline, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_pipeline flightops/flight-status ci .harness/ci.yaml -->
 
 The name `ci` is also the pipeline's identifier. In Lab 03, the branch rule that protects `main` refers to the pipeline by this identifier.
@@ -172,6 +206,14 @@ The name `ci` is also the pipeline's identifier. In Lab 03, the branch rule that
 ### 3.2 Run the pipeline
 
 Select **Run**, keep the branch `main`, and confirm. Harness creates an execution with the number 1.
+
+
+<!-- shots:begin -->
+<img src="img/02-first-ci-pipeline/02-run_pipeline-1.png" alt="Run the pipeline, step 1 of 2">
+
+<img src="img/02-first-ci-pipeline/02-run_pipeline-2.png" alt="Run the pipeline, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: run_pipeline flightops/flight-status ci main -->
 
@@ -182,6 +224,12 @@ h_wait flightops/flight-status ci success
 ### 3.3 Read the execution
 
 Open the execution and select each step to see its log.
+
+
+<!-- shots:begin -->
+<img src="img/02-first-ci-pipeline/03-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
 
 <!-- ui: view_execution flightops/flight-status ci -->
 
@@ -226,6 +274,14 @@ git push
 
 Run the pipeline again from Harness: **Run**, branch `main`. There is no trigger yet, so a push does not start a run by itself.
 
+
+<!-- shots:begin -->
+<img src="img/02-first-ci-pipeline/04-run_pipeline-1.png" alt="Run the pipeline, step 1 of 2">
+
+<img src="img/02-first-ci-pipeline/04-run_pipeline-2.png" alt="Run the pipeline, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: run_pipeline flightops/flight-status ci main -->
 
 <!-- test
@@ -266,6 +322,14 @@ git log --oneline -3
 
 Run the pipeline again from Harness. It is green again.
 
+
+<!-- shots:begin -->
+<img src="img/02-first-ci-pipeline/05-run_pipeline-1.png" alt="Run the pipeline, step 1 of 2">
+
+<img src="img/02-first-ci-pipeline/05-run_pipeline-2.png" alt="Run the pipeline, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: run_pipeline flightops/flight-status ci main -->
 
 <!-- test
@@ -279,6 +343,22 @@ h_wait flightops/flight-status ci success
 Continuous integration means that every change is checked, without anyone having to remember to select **Run**. A trigger starts a pipeline when an event happens in the repository. When you create a pipeline, Harness adds a default trigger for pull request events. You add a trigger for pushes.
 
 In the `ci` pipeline, open its settings (**Settings**), then the **Triggers** tab, and select **New Trigger**. Name it `push`, select the event **Branch updated**, and create it.
+
+
+<!-- shots:begin -->
+<img src="img/02-first-ci-pipeline/06-add_trigger-1.png" alt="Add the trigger, step 1 of 6">
+
+<img src="img/02-first-ci-pipeline/06-add_trigger-2.png" alt="Add the trigger, step 2 of 6">
+
+<img src="img/02-first-ci-pipeline/06-add_trigger-3.png" alt="Add the trigger, step 3 of 6">
+
+<img src="img/02-first-ci-pipeline/06-add_trigger-4.png" alt="Add the trigger, step 4 of 6">
+
+<img src="img/02-first-ci-pipeline/06-add_trigger-5.png" alt="Add the trigger, step 5 of 6">
+
+<img src="img/02-first-ci-pipeline/06-add_trigger-6.png" alt="Add the trigger, step 6 of 6">
+
+<!-- shots:end -->
 
 <!-- ui: add_trigger flightops/flight-status ci push branch_updated -->
 

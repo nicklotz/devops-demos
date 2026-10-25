@@ -345,6 +345,12 @@ curl -s http://flights-dev.localhost:8080/ready | jq -e '.storage == "postgres"'
 
 Open http://flights-dev.localhost:8080 in the browser. The page lists the flights and shows `Version 1.0.0 · environment dev`.
 
+
+<!-- shots:begin -->
+<img src="img/08-kubernetes-rollouts/01-browse-1.png" alt="The page in the browser">
+
+<!-- shots:end -->
+
 <!-- ui: browse http://flights-dev.localhost:8080 -->
 
 ## Part 3: Self-healing, scaling and the quota
@@ -761,6 +767,14 @@ A  k8s/dev/kustomization.yaml
 
 In Harness, open the **flight-status** repository and select **Pull Requests**, then **New Pull Request**. Choose `main` as the target branch and `feature/kubernetes` as the source branch. Enter the title `Add Kubernetes manifests` and create the pull request.
 
+
+<!-- shots:begin -->
+<img src="img/08-kubernetes-rollouts/02-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/08-kubernetes-rollouts/02-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status feature/kubernetes main "Add Kubernetes manifests" -->
 
 Wait until the `ci` check shows success.
@@ -770,6 +784,14 @@ h_wait_pr_check flightops/flight-status ci success
 -->
 
 Merge the pull request with **Squash and merge** and delete the source branch when Harness offers it.
+
+
+<!-- shots:begin -->
+<img src="img/08-kubernetes-rollouts/03-merge_pr-1.png" alt="Merge the pull request, step 1 of 2">
+
+<img src="img/08-kubernetes-rollouts/03-merge_pr-2.png" alt="Merge the pull request, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/flight-status -->
 

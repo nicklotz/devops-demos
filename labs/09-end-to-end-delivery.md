@@ -512,6 +512,14 @@ A  k8s/prod/kustomization.yaml
 
 In Harness, open the **flight-status** repository and select **Pull Requests**, then **New Pull Request**. Choose `main` as the target branch and `feature/delivery` as the source branch. Enter the title `Add delivery and promotion` and create the pull request.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/01-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/09-end-to-end-delivery/01-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status feature/delivery main "Add delivery and promotion" -->
 
 Harness reads the pipeline YAML from the commit it builds. The pull request run therefore already uses your new `ci.yaml`. A pull request can change its own pipeline. The branch rule and the review protect what reaches `main`.
@@ -523,6 +531,12 @@ h_wait_pr_check flightops/flight-status ci success
 ### 3.3 Read the pull request run
 
 Open **Pipelines**, select `ci`, and open the latest execution.
+
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/02-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
 
 <!-- ui: view_execution flightops/flight-status ci -->
 
@@ -543,9 +557,23 @@ h_log flightops/flight-status ci image | grep -q "digest: sha256"
 
 Merge the pull request with **Squash and merge** and delete the source branch when Harness offers it.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/03-merge_pr-1.png" alt="Merge the pull request, step 1 of 2">
+
+<img src="img/09-end-to-end-delivery/03-merge_pr-2.png" alt="Merge the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: merge_pr flightops/flight-status -->
 
 The merge is a push to `main`. The `ci` pipeline runs again, and this time it deploys. Open the new execution and follow it until the end. The `deploy` log shows the rollout, and the `smoke` log ends with `true`.
+
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/04-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
 
 <!-- ui: view_execution flightops/flight-status ci -->
 
@@ -587,13 +615,55 @@ h_eq "$dev_commit" "$(git rev-parse HEAD)" "dev runs the commit at the top of ma
 
 In Harness, in the **flight-status** repository, select **Pipelines**, then **New Pipeline**. Enter the name `promote`, keep the branch `main`, and set the YAML path to `.harness/promote.yaml`. Create the pipeline.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/05-create_pipeline-1.png" alt="Create the pipeline, step 1 of 4">
+
+<img src="img/09-end-to-end-delivery/05-create_pipeline-2.png" alt="Create the pipeline, step 2 of 4">
+
+<img src="img/09-end-to-end-delivery/05-create_pipeline-3.png" alt="Create the pipeline, step 3 of 4">
+
+<img src="img/09-end-to-end-delivery/05-create_pipeline-4.png" alt="Create the pipeline, step 4 of 4">
+
+<!-- shots:end -->
+
 <!-- ui: create_pipeline flightops/flight-status promote .harness/promote.yaml -->
 
 A new pipeline gets a default trigger for pull request events. A pull request must never deploy to production, so disable it. Open the `promote` pipeline's settings, select the **Triggers** tab, and switch off the trigger named `default`.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/06-disable_trigger-1.png" alt="Turn off the default trigger, step 1 of 5">
+
+<img src="img/09-end-to-end-delivery/06-disable_trigger-2.png" alt="Turn off the default trigger, step 2 of 5">
+
+<img src="img/09-end-to-end-delivery/06-disable_trigger-3.png" alt="Turn off the default trigger, step 3 of 5">
+
+<img src="img/09-end-to-end-delivery/06-disable_trigger-4.png" alt="Turn off the default trigger, step 4 of 5">
+
+<img src="img/09-end-to-end-delivery/06-disable_trigger-5.png" alt="Turn off the default trigger, step 5 of 5">
+
+<!-- shots:end -->
+
 <!-- ui: disable_trigger flightops/flight-status promote default -->
 
 Add the trigger that starts a release. In the **Triggers** tab, create a new trigger named `release`, select the event **Tag created**, and save it.
+
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/07-add_trigger-1.png" alt="Add the trigger, step 1 of 6">
+
+<img src="img/09-end-to-end-delivery/07-add_trigger-2.png" alt="Add the trigger, step 2 of 6">
+
+<img src="img/09-end-to-end-delivery/07-add_trigger-3.png" alt="Add the trigger, step 3 of 6">
+
+<img src="img/09-end-to-end-delivery/07-add_trigger-4.png" alt="Add the trigger, step 4 of 6">
+
+<img src="img/09-end-to-end-delivery/07-add_trigger-5.png" alt="Add the trigger, step 5 of 6">
+
+<img src="img/09-end-to-end-delivery/07-add_trigger-6.png" alt="Add the trigger, step 6 of 6">
+
+<!-- shots:end -->
 
 <!-- ui: add_trigger flightops/flight-status promote release tag_created -->
 
@@ -616,6 +686,12 @@ git push origin v1.0.0
 ```
 
 Open **Pipelines**, select `promote`, and follow the execution that the tag started. The `check` step prints `Image found`. The `deploy` step rolls out three pods. The `smoke` step checks the commit.
+
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/08-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
 
 <!-- ui: view_execution flightops/flight-status promote -->
 
@@ -652,6 +728,12 @@ test "$(kubectl -n flightops-prod get deployment flight-status -o jsonpath='{.st
 
 Open http://flights.localhost:8080 in the browser. The page shows `environment production`.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/09-browse-1.png" alt="The page in the browser">
+
+<!-- shots:end -->
+
 <!-- ui: browse http://flights.localhost:8080 -->
 
 ## Part 6: A bad release and the automatic rollback
@@ -680,6 +762,14 @@ git push -u origin feature/readiness-rename
 
 In Harness, open a pull request from `feature/readiness-rename` to `main` with the title `Use /readyz for the readiness probe`.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/10-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/09-end-to-end-delivery/10-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status feature/readiness-rename main "Use /readyz for the readiness probe" -->
 
 The `ci` check passes. The pull request run lints, tests, builds and scans, and none of these steps notices the problem.
@@ -690,6 +780,14 @@ h_wait_pr_check flightops/flight-status ci success
 
 Merge the pull request with **Squash and merge**.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/11-merge_pr-1.png" alt="Merge the pull request, step 1 of 2">
+
+<img src="img/09-end-to-end-delivery/11-merge_pr-2.png" alt="Merge the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: merge_pr flightops/flight-status -->
 
 <!-- test
@@ -699,6 +797,12 @@ h_wait flightops/flight-status ci failure --branch main
 ### 6.3 Watch the pipeline protect dev
 
 Open the latest `ci` execution for `main`.
+
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/12-view_execution-1.png" alt="Open the pipeline run">
+
+<!-- shots:end -->
 
 <!-- ui: view_execution flightops/flight-status ci -->
 
@@ -758,6 +862,14 @@ git push -u origin fix/readiness-path
 
 Open a pull request from `fix/readiness-path` to `main` with the title `Revert the readiness probe path`.
 
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/13-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/09-end-to-end-delivery/13-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status fix/readiness-path main "Revert the readiness probe path" -->
 
 <!-- test
@@ -765,6 +877,14 @@ h_wait_pr_check flightops/flight-status ci success
 -->
 
 Merge it with **Squash and merge**. The `main` run deploys the fixed version to dev.
+
+
+<!-- shots:begin -->
+<img src="img/09-end-to-end-delivery/14-merge_pr-1.png" alt="Merge the pull request, step 1 of 2">
+
+<img src="img/09-end-to-end-delivery/14-merge_pr-2.png" alt="Merge the pull request, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/flight-status -->
 

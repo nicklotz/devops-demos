@@ -209,6 +209,30 @@ In the `flight-status` repository, open **Settings**, then **Rules**, and select
 
 Save the rule. The labels can differ a little between Harness versions. What matters is the effect.
 
+
+<!-- shots:begin -->
+<img src="img/03-quality-gates/01-create_branch_rule-1.png" alt="Create the branch rule, step 1 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-2.png" alt="Create the branch rule, step 2 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-3.png" alt="Create the branch rule, step 3 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-4.png" alt="Create the branch rule, step 4 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-5.png" alt="Create the branch rule, step 5 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-6.png" alt="Create the branch rule, step 6 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-7.png" alt="Create the branch rule, step 7 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-8.png" alt="Create the branch rule, step 8 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-9.png" alt="Create the branch rule, step 9 of 10">
+
+<img src="img/03-quality-gates/01-create_branch_rule-10.png" alt="Create the branch rule, step 10 of 10">
+
+<!-- shots:end -->
+
 <!-- ui: create_branch_rule flightops/flight-status protect-main ci -->
 
 <!-- test
@@ -630,6 +654,14 @@ A pull request asks the team to merge a branch into `main`. It shows the changes
 
 In Harness, open the `flight-status` repository. Harness shows a banner for the branch you just pushed, with a button to create a pull request. If the banner is not there, open **Pull Requests** and select **New Pull Request**. Choose `feature/departures` as the source branch and `main` as the target branch. Enter the title `Add departures board`, and describe in the description what the change does and how you tested it. Select **Create pull request**.
 
+
+<!-- shots:begin -->
+<img src="img/03-quality-gates/02-open_pr-1.png" alt="Open the pull request, step 1 of 2">
+
+<img src="img/03-quality-gates/02-open_pr-2.png" alt="Open the pull request, step 2 of 2">
+
+<!-- shots:end -->
+
 <!-- ui: open_pr flightops/flight-status feature/departures main "Add departures board" -->
 
 Creating the pull request starts the `ci` pipeline through the default pull request trigger.
@@ -663,6 +695,12 @@ unformatted: File would be reformatted
 `All checks passed!` comes from `ruff check`: the code has no lint problems. The rest comes from `ruff format --check`. It names the file and the line, and shows the change it would make: the line with `-` is your code, the line with `+` is the formatted version.
 
 The tests passed on your machine, but you did not run the formatter. The pipeline runs every check on every change, including the checks you forget.
+
+
+<!-- shots:begin -->
+<img src="img/03-quality-gates/03-view_pr-1.png" alt="Open the pull request">
+
+<!-- shots:end -->
 
 <!-- ui: view_pr flightops/flight-status -->
 
@@ -714,6 +752,12 @@ A check proves that the code passes the tests and the linter. A review checks wh
 
 Open the **Changes** tab of the pull request. Read the diff of `rules.py` and `main.py`. Add a comment on the `FINISHED` line, for example: "DELAYED flights stay on the board, because they have not left yet."
 
+
+<!-- shots:begin -->
+<img src="img/03-quality-gates/04-view_pr-1.png" alt="Open the pull request">
+
+<!-- shots:end -->
+
 <!-- ui: view_pr flightops/flight-status -->
 
 ### 6.2 Merge with squash
@@ -721,6 +765,14 @@ Open the **Changes** tab of the pull request. Read the diff of `rules.py` and `m
 A squash merge combines the commits of the branch ("Add a departures board for each airport" and "Format the departures route") into one commit on `main`. `main` then has one commit per change, which is easier to read and to revert.
 
 Select **Squash and merge**. Keep the option to delete the source branch, and confirm.
+
+
+<!-- shots:begin -->
+<img src="img/03-quality-gates/05-merge_pr-1.png" alt="Merge the pull request, step 1 of 2">
+
+<img src="img/03-quality-gates/05-merge_pr-2.png" alt="Merge the pull request, step 2 of 2">
+
+<!-- shots:end -->
 
 <!-- ui: merge_pr flightops/flight-status -->
 
