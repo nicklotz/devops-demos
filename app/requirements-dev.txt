@@ -1,0 +1,6 @@
+# Everything needed to lint and test the service.
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.16.0
+ruff==0.17.2

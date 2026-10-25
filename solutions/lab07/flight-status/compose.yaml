@@ -1,0 +1,35 @@
+# Run the API and a PostgreSQL database on your machine (Lab 07).
+services:
+  app:
+    build: .
+    image: k3d-registry.localhost:5000/flight-status:1.0.0
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      DATABASE_URL: postgresql://flights:flights@db:5432/flights
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: flights
+      POSTGRES_PASSWORD: flights
+      POSTGRES_DB: flights
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flights"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db-data:

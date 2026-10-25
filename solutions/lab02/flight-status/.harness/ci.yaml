@@ -1,0 +1,33 @@
+# Continuous integration for flight-status (Lab 02).
+# Each step runs in its own container. All steps share the cloned workspace,
+# so the virtual environment created by "install" is reused by later steps.
+kind: pipeline
+spec:
+  stages:
+  - name: build
+    type: ci
+    spec:
+      steps:
+      - name: install
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            python -m venv .venv
+            . .venv/bin/activate
+            pip install --quiet -r requirements-dev.txt
+      - name: lint
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            . .venv/bin/activate
+            ruff check .
+            ruff format --check .
+      - name: test
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            . .venv/bin/activate
+            pytest

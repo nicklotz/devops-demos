@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intermediate DevOps · Day 3: Containers, Kubernetes and continuous delivery</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+  /* Day 3 additions: full-width and compact tables, agenda rows, reference list. */
+  .reveal table.full { width: 100%; }
+  .reveal table.dense { font-size: 18px; }
+  .reveal table.dense th { font-size: 16px; }
+  .reveal table.dense td { padding: 7px 18px 7px 0; }
+  .reveal table.agenda td { padding: 6px 28px 6px 0; }
+  .reveal ul.refs > li { font-size: 18px; line-height: 1.32; margin-bottom: 8px; }
+  .reveal ul.refs > li::before { top: 9px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- ============================== Opening ============================== -->
+
+<section class="title-slide" data-state="title" data-background-color="#0B1F3A">
+  <div class="t-band" style="top:146px"></div>
+  <div class="t-main" style="top:176px">Intermediate DevOps<br>Day 3: Containers, Kubernetes<br>and continuous delivery</div>
+  <div class="t-sub" style="top:392px">United Airlines · Pluralsight instructor-led training</div>
+  <div class="t-meta">Nick Lotz<br>27–29 October 2026</div>
+  <aside class="notes">
+    Welcome back to day 3. Today follows the flight-status application from source code to a running service.
+    This morning we package it as a container image, look at what a container is at the operating-system level,
+    and compare Docker Compose with Amazon ECS and Fargate. After lunch we deploy to Kubernetes and practise
+    rollouts, failures and rollbacks. The last lab joins the work of all three days into one delivery pipeline:
+    test, build, scan, deploy to dev, verify, promote to prod, and roll back when verification fails.
+    Before we start, ask everyone to run "docker ps" on their lab machine. It should list the harness container,
+    the k3d server and load balancer containers, and the registry. If any are missing, help them now, because
+    every lab today depends on them.
+  </aside>
+</section>
+
+<section>
+  <h2>Day 2 recap</h2>
+  <ul>
+    <li>Infrastructure as code describes the desired state in version-controlled files.</li>
+    <li>Terraform compares the configuration with its state and plans the changes.</li>
+    <li>The <code>platform</code> repository runs a plan on every pull request and applies on merge.</li>
+    <li>Terraform state is stored in a Kubernetes Secret. A Lease stops two runs from applying at once.</li>
+    <li>Credentials get the least privilege and the shortest lifetime that still work. A pipeline never prints them.</li>
+  </ul>
+  <p>Your cluster now has a dev and a prod namespace, each with a quota and a Postgres database.</p>
+  <aside class="notes">
+    Ask two or three people what they found hardest yesterday, and answer open questions before moving on.
+    The link to today: yesterday the platform repository created the environments. Today the application pipeline
+    deploys into them. The deploy ServiceAccount from Lab 06 is the identity the Lab 09 pipeline uses, so its
+    permissions decide what the pipeline can and cannot change.
+    If someone did not finish Lab 06, they can run scripts/catch-up.sh 07 now. It replays the earlier labs on their
+    machine while we go through the first lecture. It takes several minutes, so start it early.
+  </aside>
+</section>
+
+<section>
+  <h2>Day 3 agenda</h2>
+  <table class="agenda">
+    <tr><th>Time (CT)</th><th>Session</th></tr>
+    <tr><td>09:00</td><td>Day 2 recap</td></tr>
+    <tr><td>09:10</td><td>Containers</td></tr>
+    <tr><td>09:45</td><td>Docker Compose, Amazon ECS and Fargate</td></tr>
+    <tr><td>10:10</td><td>Break</td></tr>
+    <tr><td>10:20</td><td>Lab 07: Build, scan and describe a container</td></tr>
+    <tr><td>11:35</td><td>Kubernetes</td></tr>
+    <tr><td>12:10</td><td>Lunch</td></tr>
+    <tr><td>12:55</td><td>Lab 08: Kubernetes deployments, rollouts and rollbacks</td></tr>
+    <tr><td>14:25</td><td>Break</td></tr>
+    <tr><td>14:35</td><td>Continuous delivery</td></tr>
+    <tr><td>15:05</td><td>Lab 09: End-to-end delivery pipeline</td></tr>
+    <tr><td>16:50</td><td>Course summary and feedback</td></tr>
+  </table>
+  <aside class="notes">
+    Today has four lectures and three labs. The two morning lectures are about the artifact: what a container image
+    is and how the same image runs on your laptop, in Docker Compose and in Amazon ECS. The afternoon lectures are about
+    running that artifact: Kubernetes, then continuous delivery practices such as promotion, canary releases and
+    automated rollback.
+    Lab 09 is the longest lab of the course. It needs Labs 04 to 08 to be complete, so keep an eye on time during the
+    morning labs and use the "Going further" tasks only once the main steps are done.
+  </aside>
+</section>
+
+<!-- ============================== L9 Containers ============================== -->
+
+<section>
+  <h2>Virtual machines and containers</h2>
+  <svg class="diagram" viewBox="0 0 1136 370" role="img" aria-label="Virtual machines each run a guest kernel on a hypervisor. Containers share the host Linux kernel.">
+    <g font-size="20" font-weight="700" fill="#14263D">
+      <text x="0" y="22">Virtual machines</text>
+      <text x="616" y="22">Containers</text>
+    </g>
+    <g fill="#fff" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="40" width="255" height="186" rx="6"/>
+      <rect x="265" y="40" width="255" height="186" rx="6"/>
+      <rect x="616" y="40" width="255" height="132" rx="6"/>
+      <rect x="881" y="40" width="255" height="132" rx="6"/>
+    </g>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="15" y="54" width="225" height="44" rx="4"/>
+      <rect x="15" y="108" width="225" height="44" rx="4"/>
+      <rect x="15" y="162" width="225" height="50" rx="4"/>
+      <rect x="280" y="54" width="225" height="44" rx="4"/>
+      <rect x="280" y="108" width="225" height="44" rx="4"/>
+      <rect x="280" y="162" width="225" height="50" rx="4"/>
+      <rect x="0" y="240" width="520" height="50" rx="6"/>
+      <rect x="0" y="304" width="520" height="50" rx="6"/>
+      <rect x="631" y="54" width="225" height="44" rx="4"/>
+      <rect x="631" y="108" width="225" height="44" rx="4"/>
+      <rect x="896" y="54" width="225" height="44" rx="4"/>
+      <rect x="896" y="108" width="225" height="44" rx="4"/>
+      <rect x="616" y="186" width="520" height="44" rx="6"/>
+      <rect x="616" y="304" width="520" height="50" rx="6"/>
+    </g>
+    <rect x="616" y="240" width="520" height="50" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="127" y="82">App</text><text x="127" y="136">Libraries</text><text x="127" y="193">Guest OS kernel</text>
+      <text x="392" y="82">App</text><text x="392" y="136">Libraries</text><text x="392" y="193">Guest OS kernel</text>
+      <text x="260" y="271">Hypervisor</text>
+      <text x="260" y="335">Hardware</text>
+      <text x="743" y="82">App</text><text x="743" y="136">Libraries</text>
+      <text x="1008" y="82">App</text><text x="1008" y="136">Libraries</text>
+      <text x="876" y="214">Container runtime (containerd)</text>
+      <text x="876" y="271">Host Linux kernel, shared by all containers</text>
+      <text x="876" y="335">Hardware</text>
+    </g>
+  </svg>
+  <p>A virtual machine runs its own kernel on virtual hardware. A container is a group of ordinary processes on the host kernel, with an isolated view of the system.</p>
+  <aside class="notes">
+    Start with history. Unix chroot (1979) gave a process its own view of the filesystem. FreeBSD jails (2000) and
+    Solaris Zones (2004) isolated more of the system. Linux gained the needed kernel features between 2002 and 2013,
+    LXC (2008) combined them, and Docker (2013) made them easy to use with images and a simple command line.
+    Consequences of sharing the kernel: a container starts in milliseconds because no operating system boots; images are
+    small because they contain no kernel; and a kernel vulnerability affects every container on the host, which is why
+    host patching still matters.
+    On a Mac or Windows laptop, Docker Desktop runs a small Linux virtual machine, and the containers run inside it.
+    On your lab machine they run on the Ubuntu kernel itself.
+  </aside>
+</section>
+
+<section>
+  <h2>Linux namespaces isolate what a process can see</h2>
+  <table class="full">
+    <tr><th>Namespace</th><th>What the process gets its own copy of</th></tr>
+    <tr><td>PID</td><td>Process IDs. The container's first process is PID 1.</td></tr>
+    <tr><td>Network</td><td>Network interfaces, IP addresses, routes and ports</td></tr>
+    <tr><td>Mount</td><td>The filesystem tree, built from the image</td></tr>
+    <tr><td>UTS</td><td>The hostname</td></tr>
+    <tr><td>IPC</td><td>Shared memory and message queues</td></tr>
+    <tr><td>User</td><td>User and group IDs, so root in a container can map to an unprivileged host user</td></tr>
+    <tr><td>Cgroup</td><td>The view of its own control group</td></tr>
+  </table>
+  <p>Docker creates a new set of namespaces for each container (namespaces(7), Linux manual pages).</p>
+  <aside class="notes">
+    A namespace wraps a global system resource so that processes inside it see their own copy. The mount namespace
+    arrived first, in Linux 2.4.19 (2002). User namespaces were completed in Linux 3.8 (2013), and a time namespace was
+    added in 5.6 (2020).
+    A demonstration you can run on the lab machine: start a container and run "ps aux" inside it. You see only the
+    container's processes, starting at PID 1. Run "ps aux" on the host and the same process appears with a different,
+    higher PID.
+    PID 1 has a special job: it receives signals such as SIGTERM when the container stops. A process that ignores
+    SIGTERM is killed after a grace period, 10 seconds in Docker and 30 seconds in Kubernetes by default.
+    Docker does not enable user namespace remapping by default, so root in a container is root on the host kernel.
+    This is one reason the Dockerfile in Lab 07 switches to a non-root user.
+  </aside>
+</section>
+
+<section>
+  <h2>Control groups limit what a process can use</h2>
+  <ul>
+    <li>A control group (cgroup) limits the CPU time, memory, disk I/O and number of processes of a group of processes.</li>
+    <li>The kernel also counts usage per cgroup. <code>docker stats</code> reads these counters.</li>
+    <li>When a container uses more memory than its limit, the kernel kills a process in it (OOM kill).</li>
+    <li>When a container reaches its CPU limit, the kernel slows it down (throttling). It keeps running.</li>
+  </ul>
+<pre><code>docker run --memory 256m --cpus 0.5 flight-status:1.0.0</code></pre>
+  <p>Kubernetes requests and limits, later today, are applied through the same cgroup settings.</p>
+  <aside class="notes">
+    Namespaces control what a process can see. Control groups control how much it can use. Engineers at Google
+    developed cgroups (first called "process containers"), and they were merged into Linux 2.6.24 in January 2008.
+    Ubuntu 24.04 uses cgroup version 2, the single unified hierarchy.
+    The two failure modes matter for operations. Memory is not compressible: over the limit, the kernel's
+    out-of-memory killer ends a process, and Docker or Kubernetes reports the container as OOMKilled with exit code 137.
+    CPU is compressible: over the limit, the process waits for the next scheduling period, so requests become slower but
+    nothing restarts. Slow responses with no restarts can be a sign of CPU throttling.
+    Ask the class: if a Java or Python service has a memory leak, which of the two do you expect to see? (Restarts with
+    OOMKilled.)
+  </aside>
+</section>
+
+<section>
+  <h2>Images are stacks of read-only layers</h2>
+  <svg class="diagram" viewBox="0 0 1136 310" role="img" aria-label="Five layers: container layer, application code, dependencies, requirements file, base image.">
+    <rect x="0" y="0" width="560" height="54" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5" stroke-dasharray="8 6"/>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="62" width="560" height="54" rx="6"/>
+      <rect x="0" y="124" width="560" height="54" rx="6"/>
+      <rect x="0" y="186" width="560" height="54" rx="6"/>
+      <rect x="0" y="248" width="560" height="54" rx="6"/>
+    </g>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="280" y="33">Container layer (read-write)</text>
+      <text x="280" y="95">Application code (COPY)</text>
+      <text x="280" y="157">Dependencies (RUN pip install)</text>
+      <text x="280" y="219">requirements.txt (COPY)</text>
+      <text x="280" y="281">Base image: python:3.12-slim</text>
+    </g>
+    <g font-size="17" fill="#5C6B7B">
+      <text x="596" y="33">Created when the container starts. Removed with it.</text>
+      <text x="596" y="95">Rebuilt on every code change.</text>
+      <text x="596" y="157">Rebuilt only when requirements.txt changes.</text>
+      <text x="596" y="219">A few kilobytes.</text>
+      <text x="596" y="281">Shared with every image built on the same base.</text>
+    </g>
+  </svg>
+  <p>Each Dockerfile instruction that changes files adds a read-only layer. OverlayFS stacks the layers into one filesystem and adds a writable layer for each container.</p>
+  <aside class="notes">
+    The four lower layers are the image. They are read-only, and each one is stored and transferred as a compressed
+    archive identified by its SHA-256 digest. Two images built on the same base share the base layers on disk and in the
+    registry, so the base is pulled only once.
+    The top layer belongs to one running container. When the application changes a file that came from a lower layer,
+    OverlayFS first copies the file up into the writable layer (copy-on-write). Deleting a file adds a marker that hides
+    it; the bytes stay in the lower layer. This is why deleting a secret in a later Dockerfile step does not remove it
+    from the image.
+    Because the writable layer disappears with the container, anything that must survive a restart, such as database
+    files, goes in a volume.
+    In Lab 07 you will run "docker history" to see these layers and their sizes.
+  </aside>
+</section>
+
+<section>
+  <h2>The OCI specifications</h2>
+  <table class="full">
+    <tr><th>Specification</th><th>What it defines</th><th>Examples</th></tr>
+    <tr><td>Image</td><td>The image manifest, configuration and layer format</td><td>Docker BuildKit, Buildah</td></tr>
+    <tr><td>Runtime</td><td>How to run a container from an unpacked filesystem and a configuration file</td><td>runc, crun</td></tr>
+    <tr><td>Distribution</td><td>The HTTP API for pushing and pulling images</td><td>Docker Hub, Amazon ECR, the k3d registry</td></tr>
+  </table>
+  <p>The Open Container Initiative was founded in 2015 to standardise these formats. Because of them, an image built with Docker on your lab machine runs on containerd in k3d, on Amazon EKS and on Amazon ECS.</p>
+  <aside class="notes">
+    The Open Container Initiative was founded in June 2015 under the Linux Foundation by Docker, CoreOS and other
+    companies. Docker donated its image format and its runtime, runc. The image and runtime specifications reached
+    version 1.0 in July 2017, and the distribution specification in 2021.
+    Why it matters to United: the build tool and the run platform can change independently. A pipeline can build with
+    Docker or with Kaniko, push to Amazon ECR, and the same image runs in EKS or ECS. Nothing in the image is specific to
+    Docker.
+    One detail students meet in Lab 07: "docker build" produces an image manifest that points to a configuration
+    object and an ordered list of layer digests. The image digest is the hash of that manifest, which is the subject of
+    the next slide.
+  </aside>
+</section>
+
+<section>
+  <h2>Tags and digests</h2>
+<pre><code>k3d-registry.localhost:5000/flight-status:1.4.0
+k3d-registry.localhost:5000/flight-status@sha256:9b1e5c0d…</code></pre>
+  <ul>
+    <li>A tag is a name that points to an image. Anyone with push rights can point it at a different image.</li>
+    <li>A digest is the SHA-256 hash of the image manifest. It identifies one image and cannot change.</li>
+    <li><code>latest</code> is the default tag name. It does not mean the newest image.</li>
+    <li>Deploy by digest, or by a tag that your pipeline never reuses.</li>
+  </ul>
+  <aside class="notes">
+    Walk through the two references. The first is registry host, repository and tag. The second replaces the tag with
+    the digest.
+    The danger with tags: if a pipeline pushes "flight-status:1.4.0" twice with different content, two nodes can run two
+    different programs under the same name, and a rollback to "1.4.0" may not return the code you tested. Amazon ECR has
+    a repository setting called tag immutability that rejects a push to an existing tag.
+    The Lab 09 pipeline tags each image with the commit SHA. A commit SHA names one version of the code, so the tag is
+    never reused for different code. The push step prints the digest, so you can see which exact image went to dev and prod.
+    Ask the class: what does "image: postgres" in a manifest resolve to? (postgres:latest on Docker Hub, which changes
+    whenever a new release is published.)
+  </aside>
+</section>
+
+<section>
+  <h2>Dockerfile practices</h2>
+  <ul>
+    <li>Start from a small, maintained base image, for example <code>python:3.12-slim</code> instead of <code>python:3.12</code>.</li>
+    <li>Copy the dependency list and install it before you copy the source code.</li>
+    <li>Run the process as a non-root user.</li>
+    <li>Keep the build context small with <code>.dockerignore</code>, and exclude <code>.git</code>, caches and local secrets.</li>
+    <li>Run one main process per container and write logs to standard output.</li>
+  </ul>
+  <aside class="notes">
+    Each practice has a reason.
+    A small base has fewer packages, so fewer vulnerabilities and a faster pull. The full python image is several times
+    larger than the slim image; Lab 07 compares their scan results.
+    Order matters because Docker reuses a cached layer only if that instruction and every instruction before it are
+    unchanged. Copying all source code first means every code change reinstalls all dependencies.
+    A non-root user limits the damage if the application is compromised.
+    The build context is everything Docker sends to the builder. Without .dockerignore, a "COPY . ." can put your .git
+    history or a local .env file with credentials into the image.
+    One process per container lets the platform restart, scale and log each part separately. Writing logs to standard
+    output is a Twelve-Factor practice (Wiggins, 2011); the platform collects them, for example into CloudWatch Logs on ECS.
+  </aside>
+</section>
+
+<section>
+  <h2>A Dockerfile for a Python web service</h2>
+<pre><code>FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY flightstatus/ ./flightstatus/
+RUN useradd --uid 10001 --no-create-home app
+USER 10001
+EXPOSE 8000
+CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]</code></pre>
+  <ul>
+    <li>Dependencies are installed before the code is copied, so a code change reuses the cached dependency layer.</li>
+    <li>The server runs as user 10001, which has no special rights on the host.</li>
+  </ul>
+  <aside class="notes">
+    Read the file top to bottom with the class.
+    FROM picks the base image. WORKDIR sets the directory for the following instructions. The first COPY brings in only
+    requirements.txt, and RUN installs the packages; "--no-cache-dir" keeps pip's download cache out of the layer.
+    The second COPY brings in the application package. useradd and USER switch to an unprivileged user for everything that
+    runs afterwards, including the container's main process.
+    EXPOSE documents the port. It does not publish it; "docker run -p" or a Kubernetes Service does that.
+    CMD uses the JSON list form, so uvicorn runs as PID 1 and receives SIGTERM itself. The shell form would start a shell
+    as PID 1 that may not pass the signal on.
+    In Lab 07 you write this file yourself and then change one line of code to see which layers Docker rebuilds.
+  </aside>
+</section>
+
+<section>
+  <h2>Container risks in NIST SP 800-190</h2>
+  <table class="full dense">
+    <tr><th>Area</th><th>Example risk</th><th>What this course does about it</th></tr>
+    <tr><td>Image</td><td>Known vulnerabilities in packages; secrets stored in a layer</td><td>Trivy scan in the pipeline; secret scanning on push</td></tr>
+    <tr><td>Registry</td><td>Stale or untrusted images; unencrypted connections</td><td>Deploy by unique tag or digest; TLS for real registries such as ECR</td></tr>
+    <tr><td>Orchestrator</td><td>Too much access for people and pipelines</td><td>A namespaced ServiceAccount with RBAC</td></tr>
+    <tr><td>Container</td><td>Running as root; no resource limits</td><td>Non-root user; requests and limits</td></tr>
+    <tr><td>Host OS</td><td>One kernel shared by all containers</td><td>Patched hosts, or no hosts to manage with Fargate</td></tr>
+  </table>
+  <p>NIST SP 800-190 groups container risks into these five areas and gives countermeasures for each (Souppaya et al., 2017).</p>
+  <aside class="notes">
+    NIST Special Publication 800-190, the Application Container Security Guide, was published in September 2017. Section 3
+    lists the major risks in five groups: image, registry, orchestrator, container and host operating system. Section 4
+    gives countermeasures for each.
+    Use the table as a map of the course. Most rows connect to a lab: the scan to Lab 07 and Lab 09, secret scanning to
+    Lab 06, the ServiceAccount to Lab 06 and Lab 09, the non-root user to Lab 07, and requests and limits to Lab 08.
+    One registry point to stress: the lab registry uses plain HTTP because it only listens on your machine. A real
+    registry such as Amazon ECR uses TLS and IAM authentication.
+    The guide is free to download from nist.gov and is short enough to read in an afternoon.
+  </aside>
+</section>
+
+<section>
+  <h2>Software bills of materials and vulnerability scanning</h2>
+  <ul>
+    <li>A software bill of materials (SBOM) lists every package in an image, with its version. CycloneDX and SPDX are the common formats.</li>
+    <li>A scanner such as Trivy matches those packages against vulnerability databases.</li>
+    <li>Each finding has a severity. A pipeline can fail when it finds a CRITICAL vulnerability that has a fix.</li>
+    <li>New vulnerabilities are published every day, so an image that passed last month can fail today.</li>
+  </ul>
+  <aside class="notes">
+    An SBOM is an ingredient list. It answers the question "do we run the vulnerable version of library X anywhere?"
+    without rebuilding anything. US Executive Order 14028 (May 2021) made SBOMs a requirement for software sold to the
+    federal government, and since then many companies expect them from suppliers.
+    Trivy, from Aqua Security, reads the operating-system package database and the language dependency files in the image,
+    then compares the versions with vulnerability records. It can also write the SBOM in CycloneDX or SPDX format.
+    Two practical points for the lab. Fail on findings you can act on: "--ignore-unfixed" skips vulnerabilities that have
+    no fixed version yet. Also rescan images that are already running, because the database changes after the image is
+    built.
+  </aside>
+</section>
+
+<section>
+  <h2>Signing and provenance</h2>
+  <ul>
+    <li>A signature shows who published an image and that it has not changed since.</li>
+    <li>Sigstore's cosign signs an image digest and stores the signature in the registry next to the image.</li>
+    <li>Provenance records how an image was built, including the source commit, the build system and the build steps.</li>
+    <li>SLSA Build levels 1 to 3 ask for provenance, then provenance signed by a hosted build platform, then a hardened build platform.</li>
+    <li>A cluster admission policy can refuse images that are not signed by a trusted key.</li>
+  </ul>
+  <aside class="notes">
+    Scanning tells you what is inside an image. Signing tells you where it came from.
+    Sigstore started in 2021 as a Linux Foundation project. With cosign, a pipeline signs the image digest, either with a
+    key it holds or with a short-lived certificate tied to the pipeline's identity (keyless signing). The signature is
+    stored in the same registry.
+    SLSA, Supply-chain Levels for Software Artifacts, version 1.0 (2023), defines Build levels. Level 1: provenance
+    exists. Level 2: the provenance is generated and signed by a hosted build platform. Level 3: the build platform
+    prevents one build from tampering with another or with the signing material.
+    We do not sign images in the labs, because the lab has no trusted key infrastructure. In a production pipeline the
+    signing step comes right after the push, and an admission controller in EKS verifies the signature before a Pod starts.
+  </aside>
+</section>
+
+<!-- ============================== L10 Compose, ECS, Fargate ============================== -->
+
+<section>
+  <h2>Docker Compose describes a multi-container application</h2>
+<pre><code>services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://flights:flights@db:5432/flights
+    depends_on:
+      - db
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: flights
+      POSTGRES_PASSWORD: flights
+      POSTGRES_DB: flights</code></pre>
+  <p>Compose creates one network for the project, and each service is reachable by its name. The API reaches the database at the host name <code>db</code>.</p>
+  <aside class="notes">
+    Compose started in 2013 as a tool called Fig, which Docker acquired in 2014. The file format is now the open Compose
+    Specification, and Compose v2 runs as "docker compose".
+    The file declares services, and optionally networks and volumes. "docker compose up" creates a network, starts the
+    database container, then the API container, and gives each a DNS name equal to its service name.
+    Point out what depends_on does and does not do: it controls start order, but by default it does not wait until
+    Postgres accepts connections. Lab 07 adds a healthcheck so the API starts only when the database is ready.
+    The password is in plain text here. That is acceptable for a file that only runs on a developer's machine. The next
+    slides show how the same setting is handled in an ECS task definition.
+  </aside>
+</section>
+
+<section>
+  <h2>Amazon ECS concepts</h2>
+  <svg class="diagram" viewBox="0 0 1136 360" role="img" aria-label="A task definition describes tasks. A service in an ECS cluster keeps two tasks running.">
+    <defs><marker id="arr-ecs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="0" y="60" width="300" height="240" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <text x="150" y="98" font-size="20" font-weight="700" fill="#14263D" text-anchor="middle">Task definition</text>
+    <g font-size="17" fill="#5C6B7B">
+      <text x="26" y="140">family: flight-status</text>
+      <text x="26" y="172">revision: 7</text>
+      <text x="26" y="204">image, cpu, memory</text>
+      <text x="26" y="236">ports, environment</text>
+      <text x="26" y="268">secrets, logging</text>
+    </g>
+    <rect x="380" y="0" width="756" height="360" rx="6" fill="none" stroke="#C3CAD0" stroke-width="1.5"/>
+    <text x="402" y="30" font-size="18" font-weight="700" fill="#14263D">ECS cluster</text>
+    <rect x="410" y="48" width="700" height="292" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <text x="432" y="80" font-size="18" fill="#14263D">Service flight-status: desired count 2</text>
+    <g fill="#fff" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="436" y="100" width="314" height="220" rx="6"/>
+      <rect x="772" y="100" width="314" height="220" rx="6"/>
+    </g>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="468" y="160" width="250" height="56" rx="4"/>
+      <rect x="804" y="160" width="250" height="56" rx="4"/>
+    </g>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="593" y="136" font-weight="700">Task</text>
+      <text x="929" y="136" font-weight="700">Task</text>
+      <text x="593" y="194">api container</text>
+      <text x="929" y="194">api container</text>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="593" y="258">Fargate, own IP address</text>
+      <text x="929" y="258">Fargate, own IP address</text>
+    </g>
+    <line x1="302" y1="190" x2="464" y2="190" stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-ecs)"/>
+    <text x="340" y="178" font-size="16" fill="#5C6B7B" text-anchor="middle">runs as</text>
+  </svg>
+  <p>A task definition is a versioned JSON document. A task is one running copy of it, and a service keeps the desired number of tasks running.</p>
+  <aside class="notes">
+    Amazon ECS was announced in 2014. Four terms cover most of it.
+    A task definition describes one or more containers: image, CPU and memory, ports, environment variables, secrets,
+    health check and logging. Every change creates a new revision; you never edit a revision in place.
+    A task is a running instance of a task definition revision.
+    A service keeps a desired count of tasks running, replaces tasks that stop or fail their health check, registers them
+    with a load balancer, and rolls out a new revision when you update it.
+    A cluster is a logical group of services and tasks. With Fargate it contains no servers you manage.
+    Map to Kubernetes for the class: a task definition is close to a Pod template, a task to a Pod, and a service to a
+    Deployment plus a Service. We use that mapping again after lunch.
+  </aside>
+</section>
+
+<section>
+  <h2>Fargate runs tasks without servers to manage</h2>
+  <table class="full">
+    <tr><th></th><th>EC2 launch type</th><th>Fargate</th></tr>
+    <tr><td>Who manages the hosts</td><td>You, as a group of EC2 instances</td><td>AWS</td></tr>
+    <tr><td>What you size</td><td>Instances, then the tasks placed on them</td><td>The CPU and memory of each task</td></tr>
+    <tr><td>Network mode</td><td>bridge, host or awsvpc</td><td>awsvpc only, so each task gets its own network interface</td></tr>
+    <tr><td>Billing</td><td>Per instance</td><td>Per task, for vCPU and memory, per second</td></tr>
+    <tr><td>Access to the host</td><td>Possible</td><td>None</td></tr>
+  </table>
+  <p>At United, containers run on Amazon ECS with Fargate.</p>
+  <aside class="notes">
+    AWS announced Fargate in 2017. It removes the instance layer: you do not patch, scale or log in to servers.
+    The trade-offs follow from the table. You choose task CPU and memory from a fixed list of combinations, for example
+    0.25 vCPU with 0.5 to 2 GB of memory. You cannot run privileged containers or host-level agents. Each task has its
+    own elastic network interface, so security groups apply per task.
+    Billing is per second with a one-minute minimum, which suits services that scale up and down during the day.
+    Ask anyone in the room who runs services on ECS today: do they choose task sizes themselves, or does the shared CDK
+    library set them? This tells you which parts of the task definition your teams usually edit.
+  </aside>
+</section>
+
+<section>
+  <h2>Mapping Compose to an ECS task definition</h2>
+  <table class="full">
+    <tr><th>compose.yaml</th><th>Task definition (JSON)</th></tr>
+    <tr><td><code>image:</code></td><td><code>containerDefinitions[].image</code></td></tr>
+    <tr><td><code>ports: ["8000:8000"]</code></td><td><code>portMappings: [{"containerPort": 8000}]</code></td></tr>
+    <tr><td><code>environment:</code></td><td><code>environment: [{"name": ..., "value": ...}]</code></td></tr>
+    <tr><td>A password in <code>environment:</code></td><td><code>secrets: [{"name": ..., "valueFrom": "&lt;Secrets Manager ARN&gt;"}]</code></td></tr>
+    <tr><td><code>healthcheck:</code></td><td><code>healthCheck.command</code></td></tr>
+    <tr><td><code>deploy.resources.limits</code></td><td>Task-level <code>cpu</code> and <code>memory</code></td></tr>
+    <tr><td>Logs on standard output</td><td><code>logConfiguration</code> with the <code>awslogs</code> driver</td></tr>
+    <tr><td><code>depends_on:</code></td><td><code>dependsOn</code> inside one task; separate services otherwise</td></tr>
+  </table>
+  <aside class="notes">
+    This is the table students fill in during Lab 07, so go through it row by row.
+    The image and environment rows are direct copies. Ports differ because Fargate has no host port mapping: the
+    container port is the task's port on its own network interface.
+    The secrets row is the important change. In ECS the task definition holds only the ARN of a secret in AWS Secrets
+    Manager or Systems Manager Parameter Store. ECS reads the value when the task starts, using the task execution role,
+    and passes it as an environment variable. The value never appears in the task definition.
+    Logging moves from "docker logs" to CloudWatch Logs through the awslogs driver.
+    The last row: in ECS the database would not run as a second container in the task. It would be Amazon RDS, a separate
+    managed service.
+  </aside>
+</section>
+
+<section>
+  <h2>What changes when the task runs in AWS</h2>
+  <ul>
+    <li>Each Fargate task gets its own network interface and private IP address in a VPC subnet.</li>
+    <li>The task execution role lets ECS pull the image and read secrets. The task role is what the application uses to call AWS APIs.</li>
+    <li>An Application Load Balancer sends requests to healthy tasks. It replaces the port mapping on your machine.</li>
+    <li>The database is a managed service such as Amazon RDS.</li>
+    <li>Logs go to Amazon CloudWatch Logs.</li>
+  </ul>
+  <aside class="notes">
+    The image stays the same. The surroundings change.
+    The two roles are a common source of confusion, so spend a minute on them. The task execution role is used by the ECS
+    agent before your code runs: pulling from ECR, fetching secrets, creating the log stream. The task role is assumed by
+    your application code at run time, for example to read from an S3 bucket. Keep them separate so the application cannot
+    read secrets meant for other services.
+    The load balancer checks each task's health and only sends traffic to healthy ones, which is the same idea as the
+    Kubernetes readiness probe after lunch.
+    At United, the shared CDK library usually creates these pieces, so an application team mostly supplies the image and the
+    task settings.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 07: Build, scan and describe a container</h2>
+  <p>75 minutes. Open <code>labs/07-containers.md</code> in the course repository.</p>
+  <ul>
+    <li>Write a Dockerfile, build the flight-status image and inspect its layers.</li>
+    <li>Push the image to the local registry.</li>
+    <li>Install Trivy, scan the image and produce an SBOM.</li>
+    <li>Run the API with Postgres in Docker Compose, then map the Compose file to an ECS task definition.</li>
+  </ul>
+  <aside class="notes">
+    The lab installs Trivy, so it needs internet access for the vulnerability database download.
+    Remind students to read the "why" paragraph before each step, and to compare their Dockerfile with the solution only
+    after they have built it once.
+    Common problems: forgetting the trailing dot in "docker build -t ... .", and the registry push failing if Docker was
+    not restarted after the insecure-registry setting in Lab 01. The troubleshooting section of the lab covers both.
+    Fast finishers can try the "Going further" task that compares the slim and full Python base images in a scan.
+    We restart at 11:35 with Kubernetes.
+  </aside>
+</section>
+
+<!-- ============================== L11 Kubernetes ============================== -->
+
+<section>
+  <h2>From Borg to Kubernetes</h2>
+  <svg class="diagram" viewBox="0 0 1136 190" role="img" aria-label="Timeline: Borg 2003 to 2004, Omega 2013, Kubernetes 2014, Kubernetes 1.0 and CNCF 2015, Amazon EKS 2018, k3s 2019.">
+    <line x1="10" y1="96" x2="1126" y2="96" stroke="#C3CAD0" stroke-width="2"/>
+    <g fill="#fff" stroke="#5C6B7B" stroke-width="2">
+      <circle cx="70" cy="96" r="7"/><circle cx="290" cy="96" r="7"/>
+      <circle cx="730" cy="96" r="7"/><circle cx="930" cy="96" r="7"/><circle cx="1076" cy="96" r="7"/>
+    </g>
+    <circle cx="510" cy="96" r="8" fill="#0033A0" stroke="#0033A0" stroke-width="2"/>
+    <g font-size="18" font-weight="700" fill="#14263D" text-anchor="middle">
+      <text x="70" y="70">2003–04</text><text x="290" y="70">2013</text><text x="510" y="70">2014</text>
+      <text x="730" y="70">2015</text><text x="930" y="70">2018</text><text x="1076" y="70">2019</text>
+    </g>
+    <g font-size="17" fill="#14263D" text-anchor="middle">
+      <text x="70" y="132">Borg runs</text><text x="70" y="156">Google's clusters</text>
+      <text x="290" y="132">Omega paper</text><text x="290" y="156">published</text>
+      <text x="510" y="132">Kubernetes</text><text x="510" y="156">open-sourced</text>
+      <text x="730" y="132">Kubernetes 1.0,</text><text x="730" y="156">CNCF founded</text>
+      <text x="930" y="132">Amazon EKS</text><text x="930" y="156">available</text>
+      <text x="1076" y="132">k3s</text><text x="1076" y="156">released</text>
+    </g>
+  </svg>
+  <p>Burns et al. (2016) describe what Google learned from Borg and Omega. Kubernetes adopted labels instead of numbered jobs, one IP address per Pod, and independent controllers that reconcile state.</p>
+  <aside class="notes">
+    Google ran Borg, its internal cluster manager, from about 2003. Omega, described in a 2013 paper, explored a more
+    flexible scheduler design. Kubernetes was announced and open-sourced in June 2014, and version 1.0 shipped in July
+    2015, when the Cloud Native Computing Foundation was founded to host it. Amazon EKS became generally available in
+    June 2018. Rancher released k3s, the small distribution that k3d runs in Docker, in 2019.
+    The ACM Queue article "Borg, Omega, and Kubernetes" (2016) lists lessons from Borg. Three of them influenced the
+    Kubernetes API: give every Pod its own IP address instead of sharing host ports, group objects with labels instead of
+    numbering them, and split control into small controllers that each reconcile one kind of object.
+    The article is about ten pages and is a good read after the course.
+  </aside>
+</section>
+
+<section>
+  <h2>The declarative API and reconciliation loops</h2>
+  <svg class="diagram" viewBox="0 0 1136 330" role="img" aria-label="A controller loop: desired state, observe actual state, compare, act, repeat.">
+    <defs><marker id="arr-loop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="60" y="10" width="380" height="96" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="696" y="10" width="380" height="96" rx="6"/>
+      <rect x="696" y="224" width="380" height="96" rx="6"/>
+      <rect x="60" y="224" width="380" height="96" rx="6"/>
+    </g>
+    <g font-size="19" fill="#14263D" text-anchor="middle" font-weight="700">
+      <text x="250" y="50">Desired state (spec)</text>
+      <text x="886" y="50">Observe actual state</text>
+      <text x="886" y="264">Compare</text>
+      <text x="250" y="264">Act</text>
+    </g>
+    <g font-size="17" fill="#5C6B7B" text-anchor="middle">
+      <text x="250" y="82">replicas: 3</text>
+      <text x="886" y="82">2 Pods running</text>
+      <text x="886" y="296">1 Pod missing</text>
+      <text x="250" y="296">Create 1 Pod</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-loop)">
+      <line x1="442" y1="58" x2="690" y2="58"/>
+      <line x1="886" y1="108" x2="886" y2="218"/>
+      <line x1="694" y1="272" x2="446" y2="272"/>
+      <line x1="250" y1="222" x2="250" y2="112"/>
+    </g>
+    <text x="568" y="160" font-size="18" font-weight="700" fill="#14263D" text-anchor="middle">ReplicaSet controller</text>
+    <text x="568" y="186" font-size="16" fill="#5C6B7B" text-anchor="middle">repeats the loop</text>
+  </svg>
+  <p>Every Kubernetes controller runs this loop. A deleted Pod comes back because the ReplicaSet controller sees two Pods where the spec asks for three, and creates one.</p>
+  <aside class="notes">
+    This slide connects Day 2 and Day 3. Terraform reconciles when you run "apply". Kubernetes reconciles all the time.
+    You change the desired state by writing an object to the API server, for example with "kubectl apply". Controllers
+    watch the API server, compare the desired state with what is running, and act to close the difference. Then they
+    start again.
+    Two consequences. First, Kubernetes repairs itself: a crashed Pod, a deleted Pod or a failed node all show up as a
+    difference and get fixed. Second, manual changes to a running object are overwritten if they conflict with the spec
+    held by the owner. Editing a Pod that a Deployment owns does not last.
+    In Lab 08 you delete a Pod on purpose and watch a new one appear within seconds.
+  </aside>
+</section>
+
+<section>
+  <h2>The control plane and the nodes</h2>
+  <svg class="diagram" viewBox="0 0 1136 340" role="img" aria-label="kubectl and the kubelet talk to the API server. The scheduler and controller manager talk to the API server. Only the API server uses the datastore.">
+    <defs><marker id="arr-cp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="0" y="70" width="140" height="60" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <rect x="180" y="0" width="500" height="340" rx="6" fill="none" stroke="#C3CAD0" stroke-width="1.5"/>
+    <rect x="720" y="0" width="416" height="340" rx="6" fill="none" stroke="#C3CAD0" stroke-width="1.5"/>
+    <rect x="330" y="60" width="200" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="200" y="230" width="145" height="84" rx="6"/>
+      <rect x="360" y="230" width="140" height="84" rx="6"/>
+      <rect x="515" y="230" width="145" height="84" rx="6"/>
+      <rect x="750" y="70" width="170" height="60" rx="6"/>
+      <rect x="750" y="170" width="170" height="60" rx="6"/>
+      <rect x="750" y="262" width="170" height="60" rx="6"/>
+      <rect x="950" y="70" width="160" height="60" rx="6"/>
+      <rect x="950" y="170" width="160" height="60" rx="6"/>
+      <rect x="950" y="262" width="160" height="60" rx="6"/>
+    </g>
+    <g font-size="18" font-weight="700" fill="#14263D">
+      <text x="200" y="30">Control plane</text>
+      <text x="740" y="30">Node</text>
+    </g>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="70" y="106">kubectl</text>
+      <text x="430" y="106">API server</text>
+      <text x="272" y="266">Datastore</text>
+      <text x="430" y="278">Scheduler</text>
+      <text x="587" y="266">Controller</text><text x="587" y="292">manager</text>
+      <text x="835" y="106">kubelet</text>
+      <text x="835" y="206">containerd</text>
+      <text x="835" y="298">kube-proxy</text>
+      <text x="1030" y="106">Pod</text><text x="1030" y="206">Pod</text><text x="1030" y="298">Pod</text>
+    </g>
+    <text x="272" y="294" font-size="15" fill="#5C6B7B" text-anchor="middle">etcd or SQLite</text>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-cp)">
+      <line x1="142" y1="100" x2="324" y2="100"/>
+      <line x1="746" y1="100" x2="536" y2="100"/>
+      <line x1="380" y1="142" x2="290" y2="224"/>
+      <line x1="430" y1="226" x2="430" y2="146"/>
+      <line x1="580" y1="226" x2="490" y2="146"/>
+      <line x1="835" y1="132" x2="835" y2="164"/>
+    </g>
+  </svg>
+  <p>Every component talks to the API server, and only the API server uses the datastore. In k3d, one container (<code>k3d-devops-server-0</code>) runs the control plane and your Pods.</p>
+  <aside class="notes">
+    Go through the components. The API server validates and stores objects; it is the only component that reads and
+    writes the datastore. etcd is the usual datastore; k3s uses an embedded SQLite database when there is a single server.
+    The scheduler picks a node for each new Pod, based on resource requests and constraints. The controller manager runs
+    the built-in controllers, such as the Deployment and ReplicaSet controllers from the previous slide.
+    On each node, the kubelet watches the API server for Pods assigned to its node and asks the container runtime,
+    containerd here, to start them. kube-proxy programs the network rules that make Services work.
+    In Amazon EKS, AWS runs the control plane for you across several availability zones, and you see only the API endpoint.
+    Your nodes are EC2 instances or Fargate.
+  </aside>
+</section>
+
+<section>
+  <h2>Deployments, ReplicaSets and Pods</h2>
+  <svg class="diagram" viewBox="0 0 1136 340" role="img" aria-label="A Deployment owns a new ReplicaSet with three Pods and an old ReplicaSet with zero Pods.">
+    <defs><marker id="arr-rs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="368" y="0" width="400" height="84" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="40" y="140" width="440" height="70" rx="6"/>
+      <rect x="656" y="140" width="440" height="70" rx="6"/>
+      <rect x="656" y="256" width="130" height="56" rx="6"/>
+      <rect x="811" y="256" width="130" height="56" rx="6"/>
+      <rect x="966" y="256" width="130" height="56" rx="6"/>
+    </g>
+    <text x="568" y="36" font-size="19" font-weight="700" fill="#14263D" text-anchor="middle">Deployment flight-status</text>
+    <text x="568" y="66" font-size="17" fill="#5C6B7B" text-anchor="middle">replicas: 3, image tag 1.5.0</text>
+    <g font-size="18" text-anchor="middle">
+      <text x="260" y="181" fill="#5C6B7B">ReplicaSet for 1.4.0: 0 Pods</text>
+      <text x="876" y="181" fill="#14263D">ReplicaSet for 1.5.0: 3 Pods</text>
+      <text x="721" y="290" fill="#14263D">Pod</text>
+      <text x="876" y="290" fill="#14263D">Pod</text>
+      <text x="1031" y="290" fill="#14263D">Pod</text>
+      <text x="260" y="246" fill="#5C6B7B" font-size="17">Kept for rollback</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-rs)">
+      <line x1="500" y1="86" x2="330" y2="134"/>
+      <line x1="636" y1="86" x2="806" y2="134"/>
+      <line x1="721" y1="212" x2="721" y2="250"/>
+      <line x1="876" y1="212" x2="876" y2="250"/>
+      <line x1="1031" y1="212" x2="1031" y2="250"/>
+    </g>
+  </svg>
+  <p>A Pod is one or more containers that share an IP address and volumes. A Deployment creates a new ReplicaSet for each new Pod template, scales the old one to zero and keeps it for rollback.</p>
+  <aside class="notes">
+    Build the picture from the bottom. A Pod is the smallest unit Kubernetes schedules. Its containers share one network
+    namespace, so they reach each other on localhost, and they can share volumes. Most Pods have one main container.
+    A ReplicaSet keeps a number of identical Pods running. You rarely create one yourself.
+    A Deployment manages ReplicaSets. When you change the Pod template, for example the image tag, the Deployment creates
+    a new ReplicaSet and moves Pods from the old one to the new one. The old ReplicaSet stays with zero Pods, up to ten
+    revisions by default (revisionHistoryLimit), and "kubectl rollout undo" scales it back up.
+    In Lab 08 you will see the ReplicaSet names change with each rollout: the suffix is a hash of the Pod template.
+  </aside>
+</section>
+
+<section>
+  <h2>Services and Ingress</h2>
+  <svg class="diagram" viewBox="0 0 1136 290" role="img" aria-label="Browser to k3d load balancer to Traefik ingress controller to Service to two ready Pods. A Pod that is not ready gets no traffic.">
+    <defs><marker id="arr-svc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="110" width="180" height="84" rx="6"/>
+      <rect x="220" y="110" width="190" height="84" rx="6"/>
+      <rect x="450" y="110" width="200" height="84" rx="6"/>
+      <rect x="920" y="20" width="216" height="64" rx="6"/>
+      <rect x="920" y="120" width="216" height="64" rx="6"/>
+    </g>
+    <rect x="690" y="110" width="190" height="84" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <rect x="920" y="220" width="216" height="64" rx="6" fill="#fff" stroke="#C3CAD0" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="90" y="158">Browser</text>
+      <text x="315" y="146">k3d load</text><text x="315" y="172">balancer</text>
+      <text x="550" y="146">Ingress controller</text><text x="550" y="172">(Traefik)</text>
+      <text x="785" y="146">Service</text><text x="785" y="172">flight-status</text>
+      <text x="1028" y="58">Pod: ready</text>
+      <text x="1028" y="158">Pod: ready</text>
+    </g>
+    <text x="1028" y="258" font-size="18" fill="#5C6B7B" text-anchor="middle">Pod: not ready</text>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="90" y="226">localhost:8080</text>
+      <text x="550" y="226">routes by host name</text>
+      <text x="785" y="226">selects Pods by label</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-svc)">
+      <line x1="182" y1="152" x2="214" y2="152"/>
+      <line x1="412" y1="152" x2="444" y2="152"/>
+      <line x1="652" y1="152" x2="684" y2="152"/>
+      <line x1="882" y1="140" x2="914" y2="62"/>
+      <line x1="882" y1="152" x2="914" y2="152"/>
+    </g>
+  </svg>
+  <p>A Service gives a set of Pods one stable name and address, and sends traffic only to Pods that pass their readiness probe. An Ingress routes HTTP requests to Services by host name and path.</p>
+  <aside class="notes">
+    Pods come and go and get new IP addresses each time. A Service is the stable front: a fixed virtual IP and a DNS
+    name, such as flight-status.flightops-dev.svc.cluster.local. It selects Pods by label, and its endpoint list holds
+    only the Pods that are ready.
+    An Ingress describes HTTP routing: requests for a host name and path go to a Service. An Ingress controller does the
+    routing. k3s ships Traefik as its Ingress controller, and k3d publishes it on port 8080 of your lab machine.
+    In Amazon EKS, the AWS Load Balancer Controller usually turns an Ingress into an Application Load Balancer, which is
+    the same role the load balancer plays in front of ECS services.
+    In Lab 08 you open the app in the browser through the Ingress and see the version change during a rollout.
+  </aside>
+</section>
+
+<section>
+  <h2>Liveness, readiness and startup probes</h2>
+  <table class="full">
+    <tr><th>Probe</th><th>Question it answers</th><th>What happens when it fails</th></tr>
+    <tr><td>Startup</td><td>Has the application finished starting?</td><td>The other probes wait. After too many failures, the container restarts.</td></tr>
+    <tr><td>Liveness</td><td>Is the process still able to work?</td><td>The kubelet restarts the container.</td></tr>
+    <tr><td>Readiness</td><td>Can this Pod take requests now?</td><td>The Pod is removed from the Service. It is not restarted.</td></tr>
+  </table>
+  <p>The flight-status API answers liveness checks on <code>/health</code> and readiness checks on <code>/ready</code>, which also tests the database connection.</p>
+  <aside class="notes">
+    Probes are how Kubernetes learns about the application's health. The kubelet runs them on each node, usually as an
+    HTTP GET.
+    The difference between liveness and readiness matters. If the database is down, every Pod's readiness check fails and
+    the Pods stop receiving traffic, which is correct. If the liveness check also tested the database, the kubelet would
+    restart every Pod, which does not fix the database and adds load when it comes back. So a liveness check should only
+    test the process itself.
+    Readiness is also what makes rolling updates safe: a new Pod gets traffic only when it reports ready, and the rollout
+    waits for it. In Lab 08 you deploy a version whose readiness check fails and see the rollout stop while the old Pods
+    keep serving.
+    The startup probe (stable since Kubernetes 1.20) protects slow-starting applications from being killed by the liveness
+    probe.
+  </aside>
+</section>
+
+<section>
+  <h2>Requests, limits and quality of service</h2>
+  <ul>
+    <li>A request is the amount the scheduler reserves on a node. A Pod only goes to a node with enough unreserved capacity.</li>
+    <li>A limit is the most a container may use. Over its memory limit it is killed. At its CPU limit it is throttled.</li>
+  </ul>
+  <table class="full" style="margin-top:22px">
+    <tr><th>QoS class</th><th>Rule</th><th>Under memory pressure on the node</th></tr>
+    <tr><td>Guaranteed</td><td>Every container has CPU and memory requests equal to its limits</td><td>Evicted last</td></tr>
+    <tr><td>Burstable</td><td>At least one request or limit, but not Guaranteed</td><td>Evicted by how far use exceeds requests</td></tr>
+    <tr><td>BestEffort</td><td>No requests or limits</td><td>Evicted first</td></tr>
+  </table>
+  <aside class="notes">
+    Requests and limits are the Kubernetes interface to the cgroups from this morning.
+    Requests are for scheduling. The scheduler adds up the requests of the Pods on a node and places a new Pod only where
+    its requests fit. A Pod with no requests can be placed anywhere, which is how nodes become overloaded.
+    Limits are enforced by the kernel, with the same behaviour as in Docker: memory over the limit means OOMKilled,
+    CPU at the limit means throttling.
+    Kubernetes derives a quality-of-service class from these settings. When a node runs short of memory, the kubelet
+    evicts Pods, starting with those that use the most beyond their requests; BestEffort Pods have no requests, so they go
+    first.
+    Yesterday's ResourceQuota in each namespace requires requests and limits on every container, so the Lab 08 manifests
+    must set them.
+  </aside>
+</section>
+
+<section>
+  <h2>A rolling update, step by step</h2>
+  <svg class="diagram" viewBox="0 0 1136 370" role="img" aria-label="Rolling update of 4 replicas with maxSurge 1 and maxUnavailable 0, in five steps.">
+    <g font-size="18" fill="#14263D">
+      <text x="0" y="41">1. Start</text>
+      <text x="0" y="115">2. Start one new Pod</text>
+      <text x="0" y="189">3. New Pod ready, old Pod stopped</text>
+      <text x="0" y="263">4. Repeat for the other old Pods</text>
+      <text x="0" y="337">5. Rollout complete</text>
+    </g>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="360" y="10" width="104" height="50" rx="6"/><rect x="480" y="10" width="104" height="50" rx="6"/><rect x="600" y="10" width="104" height="50" rx="6"/><rect x="720" y="10" width="104" height="50" rx="6"/>
+      <rect x="360" y="84" width="104" height="50" rx="6"/><rect x="480" y="84" width="104" height="50" rx="6"/><rect x="600" y="84" width="104" height="50" rx="6"/><rect x="720" y="84" width="104" height="50" rx="6"/>
+      <rect x="360" y="158" width="104" height="50" rx="6"/><rect x="480" y="158" width="104" height="50" rx="6"/><rect x="600" y="158" width="104" height="50" rx="6"/>
+      <rect x="360" y="232" width="104" height="50" rx="6"/>
+    </g>
+    <g fill="#fff" stroke="#0033A0" stroke-width="2">
+      <rect x="840" y="84" width="104" height="50" rx="6" stroke-dasharray="6 5"/>
+      <rect x="720" y="158" width="104" height="50" rx="6"/>
+      <rect x="480" y="232" width="104" height="50" rx="6"/><rect x="600" y="232" width="104" height="50" rx="6"/><rect x="720" y="232" width="104" height="50" rx="6"/>
+      <rect x="360" y="306" width="104" height="50" rx="6"/><rect x="480" y="306" width="104" height="50" rx="6"/><rect x="600" y="306" width="104" height="50" rx="6"/><rect x="720" y="306" width="104" height="50" rx="6"/>
+    </g>
+    <g font-size="17" fill="#14263D" text-anchor="middle">
+      <text x="412" y="41">1.4.0</text><text x="532" y="41">1.4.0</text><text x="652" y="41">1.4.0</text><text x="772" y="41">1.4.0</text>
+      <text x="412" y="115">1.4.0</text><text x="532" y="115">1.4.0</text><text x="652" y="115">1.4.0</text><text x="772" y="115">1.4.0</text><text x="892" y="115">1.5.0</text>
+      <text x="412" y="189">1.4.0</text><text x="532" y="189">1.4.0</text><text x="652" y="189">1.4.0</text><text x="772" y="189">1.5.0</text>
+      <text x="412" y="263">1.4.0</text><text x="532" y="263">1.5.0</text><text x="652" y="263">1.5.0</text><text x="772" y="263">1.5.0</text>
+      <text x="412" y="337">1.5.0</text><text x="532" y="337">1.5.0</text><text x="652" y="337">1.5.0</text><text x="772" y="337">1.5.0</text>
+    </g>
+    <g font-size="17" fill="#5C6B7B">
+      <text x="976" y="41">4 ready, 4 total</text>
+      <text x="976" y="115">4 ready, 5 total</text>
+      <text x="976" y="189">4 ready, 4 total</text>
+      <text x="976" y="263">4 ready, 4 total</text>
+      <text x="976" y="337">4 ready, 4 total</text>
+    </g>
+  </svg>
+  <p>Settings: 4 replicas, maxSurge 1, maxUnavailable 0. There are never fewer than 4 ready Pods or more than 5 Pods. The dashed Pod has started but is not ready yet.</p>
+  <aside class="notes">
+    Work through the example. maxSurge is how many Pods may exist above the desired count during the rollout.
+    maxUnavailable is how many of the desired Pods may be not ready. With surge 1 and unavailable 0, Kubernetes adds one
+    new Pod, waits for its readiness probe to pass, removes one old Pod, and repeats.
+    Ask the class to work out the other common setting: 4 replicas with the defaults, 25 percent each. (maxSurge rounds up
+    to 1 and maxUnavailable rounds down to 1, so Kubernetes can replace two Pods at a time and capacity can drop to 3.)
+    What if the new version never becomes ready? The rollout stops at step 2, the old Pods keep serving, and after the
+    progress deadline (600 seconds by default) the Deployment reports that the rollout failed. That is the failure you
+    create in Lab 08.
+  </aside>
+</section>
+
+<section>
+  <h2>Role-based access control</h2>
+  <svg class="diagram" viewBox="0 0 1136 250" role="img" aria-label="A RoleBinding connects the ServiceAccount deployer to the Role deployer.">
+    <defs><marker id="arr-rbac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="66" width="300" height="110" rx="6"/>
+      <rect x="400" y="86" width="280" height="70" rx="6"/>
+    </g>
+    <rect x="780" y="6" width="356" height="236" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="19" font-weight="700" fill="#14263D" text-anchor="middle">
+      <text x="150" y="104">ServiceAccount</text>
+      <text x="540" y="128">RoleBinding</text>
+      <text x="958" y="40">Role deployer</text>
+    </g>
+    <text x="150" y="134" font-size="18" fill="#14263D" text-anchor="middle">deployer</text>
+    <text x="150" y="160" font-size="16" fill="#5C6B7B" text-anchor="middle">namespace flightops-dev</text>
+    <g font-size="16" fill="#14263D">
+      <text x="804" y="78" font-weight="700">deployments</text>
+      <text x="804" y="100">get, list, watch, create, update, patch</text>
+      <text x="804" y="134" font-weight="700">services, ingresses, configmaps</text>
+      <text x="804" y="156">get, list, watch, create, update, patch</text>
+      <text x="804" y="190" font-weight="700">pods, pods/log</text>
+      <text x="804" y="212">get, list, watch</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-rbac)">
+      <line x1="398" y1="121" x2="306" y2="121"/>
+      <line x1="682" y1="121" x2="774" y2="121"/>
+    </g>
+    <g font-size="15" fill="#5C6B7B" text-anchor="middle">
+      <text x="352" y="108">subject</text>
+      <text x="728" y="108">roleRef</text>
+    </g>
+  </svg>
+  <p>A Role allows verbs on resource types in one namespace, and a RoleBinding grants the Role to a user, group or ServiceAccount. RBAC rules only add permissions, so anything a Role does not list is refused.</p>
+  <aside class="notes">
+    This is the identity the Lab 09 pipeline uses, created as code in Lab 06. Everything in the Role is scoped to one
+    namespace. ClusterRole and ClusterRoleBinding do the same for the whole cluster, for objects such as namespaces.
+    Show how to test permissions without guessing:
+    "kubectl auth can-i create deployments -n flightops-dev --as=system:serviceaccount:flightops-dev:deployer" answers yes.
+    The same question for "create namespaces" answers no.
+    Kubernetes RBAC has no deny rules. A request is allowed if any binding allows it. That makes it easy to reason about:
+    to know what an identity can do, read the Roles bound to it.
+    In Amazon EKS, IAM identities are mapped to Kubernetes users and groups through EKS access entries, and the same RBAC
+    rules then apply.
+  </aside>
+</section>
+
+<section>
+  <h2>k3d and Amazon EKS</h2>
+  <table class="full">
+    <tr><th></th><th>k3d on your lab machine</th><th>Amazon EKS</th></tr>
+    <tr><td>Control plane</td><td>A k3s server in one Docker container</td><td>Run by AWS across availability zones</td></tr>
+    <tr><td>Nodes</td><td>The same container</td><td>EC2 managed node groups or Fargate</td></tr>
+    <tr><td>Ingress</td><td>Traefik, bundled with k3s</td><td>AWS Load Balancer Controller with an ALB</td></tr>
+    <tr><td>Registry</td><td><code>k3d-registry.localhost:5000</code> over HTTP</td><td>Amazon ECR over HTTPS with IAM</td></tr>
+    <tr><td>Workload identity</td><td>ServiceAccount tokens</td><td>ServiceAccount tokens plus IAM roles (EKS Pod Identity)</td></tr>
+  </table>
+  <p>The Kubernetes API, kubectl, the manifests and RBAC are the same in both. That is why the Lab 08 manifests would run on EKS with only the image and Ingress settings changed.</p>
+  <aside class="notes">
+    k3s is a certified Kubernetes distribution: it passes the same conformance tests as EKS. Rancher made it small by
+    packing the components into one binary and replacing etcd with SQLite for single-server clusters. k3d runs k3s nodes
+    as Docker containers, which is how each of you has a cluster on one VM.
+    The differences in the table are all at the edges: who runs the control plane, where nodes come from, how traffic
+    enters, where images come from and how Pods get cloud permissions. EKS Pod Identity, added in 2023, and the older IAM
+    Roles for Service Accounts let a Pod call AWS APIs without stored keys.
+    At United, deployments to EKS run through the Harness platform. The objects it applies are the same Deployments,
+    Services and Ingresses you write in Lab 08.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 08: Kubernetes deployments, rollouts and rollbacks</h2>
+  <p>90 minutes. Open <code>labs/08-kubernetes-rollouts.md</code> in the course repository.</p>
+  <ul>
+    <li>Deploy the API with a Deployment, Service and Ingress, including probes, requests and limits.</li>
+    <li>Scale it, delete a Pod and watch Kubernetes replace it.</li>
+    <li>Roll out a new version, then a broken image and a version that fails its readiness probe.</li>
+    <li>Roll back and read the rollout history.</li>
+  </ul>
+  <aside class="notes">
+    The lab deploys into the dev namespace that Terraform created yesterday, using the image pushed in Lab 07.
+    Suggest that students keep a second terminal open with "kubectl get pods -w" during every rollout, so they see Pods
+    start, become ready and stop.
+    The two failure exercises look different on purpose. A broken image tag gives ImagePullBackOff, and the Pods never
+    start. A failing readiness probe gives Pods that run but never become ready. In both cases the old Pods keep
+    serving; check that with the browser or curl.
+    If the ResourceQuota rejects a Pod, the event explains it: "kubectl describe replicaset" shows the quota message.
+    We restart at 14:35.
+  </aside>
+</section>
+
+<!-- ============================== L12 Continuous delivery ============================== -->
+
+<section>
+  <h2>Continuous delivery and continuous deployment</h2>
+  <svg class="diagram" viewBox="0 0 1136 220" role="img" aria-label="Commit, build and test, deploy to a test environment, release decision, production.">
+    <defs><marker id="arr-cd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="30" width="160" height="80" rx="6"/>
+      <rect x="200" y="30" width="190" height="80" rx="6"/>
+      <rect x="430" y="30" width="220" height="80" rx="6"/>
+      <rect x="920" y="30" width="216" height="80" rx="6"/>
+    </g>
+    <rect x="690" y="30" width="190" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="80" y="76">Commit</text>
+      <text x="295" y="64">Build and</text><text x="295" y="90">test</text>
+      <text x="540" y="64">Deploy to a test</text><text x="540" y="90">environment</text>
+      <text x="785" y="64">Release</text><text x="785" y="90">decision</text>
+      <text x="1028" y="76">Production</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-cd)">
+      <line x1="162" y1="70" x2="194" y2="70"/><line x1="392" y1="70" x2="424" y2="70"/>
+      <line x1="652" y1="70" x2="684" y2="70"/><line x1="882" y1="70" x2="914" y2="70"/>
+    </g>
+    <g font-size="17" fill="#5C6B7B" text-anchor="middle">
+      <text x="785" y="156">Delivery: a person decides.</text>
+      <text x="785" y="184">Deployment: the pipeline decides.</text>
+    </g>
+  </svg>
+  <p>Continuous delivery keeps every change that passes the pipeline ready to release at any time (Humble and Farley, 2010). Continuous deployment releases each of those changes automatically.</p>
+  <aside class="notes">
+    The two terms are often mixed up. In continuous delivery, the software is always in a releasable state, and releasing
+    is a business decision that takes one click. In continuous deployment, every change that passes all checks goes to
+    production with no manual step. Timothy Fitz described continuous deployment at IMVU in 2009; Humble and Farley's book
+    Continuous Delivery followed in 2010.
+    Continuous deployment needs strong automated checks and fast rollback, because no person looks at the change before
+    users do. Many regulated organisations practise continuous delivery with an approval before production.
+    Lab 09 is close to continuous deployment: a merge to main deploys to prod if dev passed. The next slides cover what makes
+    that safe.
+  </aside>
+</section>
+
+<section>
+  <h2>Build once, promote the same artifact</h2>
+  <svg class="diagram" viewBox="0 0 1136 300" role="img" aria-label="One build produces one image digest. The same digest is deployed to dev and then promoted to prod.">
+    <defs><marker id="arr-promo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="110" width="170" height="80" rx="6"/>
+      <rect x="660" y="10" width="476" height="112" rx="6"/>
+      <rect x="660" y="178" width="476" height="112" rx="6"/>
+    </g>
+    <rect x="220" y="100" width="330" height="100" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="85" y="156">Build</text>
+      <text x="385" y="140" font-weight="700">Image</text>
+      <text x="898" y="46" font-weight="700">dev namespace</text>
+      <text x="898" y="214" font-weight="700">prod namespace</text>
+    </g>
+    <text x="385" y="172" font-size="16" fill="#14263D" text-anchor="middle" font-family="Menlo, monospace">flight-status@sha256:9b1e…</text>
+    <g font-size="17" fill="#5C6B7B" text-anchor="middle">
+      <text x="898" y="76">same image digest</text>
+      <text x="898" y="102">dev database, 2 app replicas</text>
+      <text x="898" y="244">same image digest</text>
+      <text x="898" y="270">prod database, 3 app replicas</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-promo)">
+      <line x1="172" y1="150" x2="214" y2="150"/>
+      <line x1="552" y1="130" x2="654" y2="70"/>
+      <line x1="552" y1="170" x2="654" y2="232"/>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="590" y="84">deploy</text>
+      <text x="590" y="232">promote</text>
+    </g>
+  </svg>
+  <p>The image that passed the checks in dev is the image that runs in prod. Settings that differ between environments come from the environment, as variables and Secrets (Wiggins, 2011).</p>
+  <aside class="notes">
+    Humble and Farley call this "only build your binaries once". If each environment gets its own build, the thing in
+    production is not the thing you tested: a dependency may have changed between builds, or a build flag may differ.
+    Promotion means deploying the same image digest to the next environment. Only configuration changes: database address,
+    replica count, feature settings. The Twelve-Factor App calls this strict separation of config from code.
+    In Lab 09 the ci pipeline builds the image once, tags it with the commit SHA, deploys it to the flightops-dev namespace
+    and runs smoke tests. When you push a release tag, the promote pipeline checks that the image for that commit exists
+    and deploys the same image to flightops-prod. Nothing is rebuilt.
+    In the Harness platform, the same idea appears as one artifact on a service, deployed by stages that target different
+    environments.
+  </aside>
+</section>
+
+<section>
+  <h2>Approvals</h2>
+  <ul>
+    <li>An approval is a pipeline step that waits for a named person or group to confirm.</li>
+    <li>Use one where a person adds information the pipeline does not have, such as a change window or a business sign-off.</li>
+    <li>Every approval adds waiting time to the lead time for changes.</li>
+    <li>The Harness platform has Harness, Jira and ServiceNow approval steps, with timeouts.</li>
+    <li>Harness Open Source has no approval step. In Lab 09, a person promotes a release to prod by pushing a git tag.</li>
+  </ul>
+  <aside class="notes">
+    Approvals are a control, and like any control they have a cost. Accelerate (Forsgren et al., 2018) found that
+    approval by an external change board was associated with lower delivery performance and no improvement in stability,
+    while peer review of each change, as in a pull request, worked well.
+    So ask what a specific approval checks. If the answer is "a person looks at the same test results the pipeline already
+    checked", automate the check instead. If the answer is "the release must wait for the end of a sales event", that is
+    information only a person has.
+    In Lab 09 the pull request review is the human check. The branch rule on main means a change reaches prod only after
+    review and a green pipeline.
+  </aside>
+</section>
+
+<section>
+  <h2>Rolling and blue-green deployments</h2>
+  <svg class="diagram" viewBox="0 0 1136 310" role="img" aria-label="Rolling: one load balancer sends traffic to old and new Pods. Blue-green: the load balancer sends all traffic to green; blue stays on standby.">
+    <defs><marker id="arr-bg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="20" font-weight="700" fill="#14263D">
+      <text x="0" y="24">Rolling</text>
+      <text x="596" y="24">Blue-green</text>
+    </g>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="160" y="44" width="220" height="56" rx="6"/>
+      <rect x="0" y="180" width="110" height="52" rx="6"/>
+      <rect x="135" y="180" width="110" height="52" rx="6"/>
+      <rect x="756" y="44" width="220" height="56" rx="6"/>
+      <rect x="596" y="160" width="250" height="100" rx="6"/>
+    </g>
+    <g fill="#fff" stroke="#0033A0" stroke-width="2">
+      <rect x="270" y="180" width="110" height="52" rx="6"/>
+      <rect x="405" y="180" width="110" height="52" rx="6"/>
+    </g>
+    <rect x="886" y="160" width="250" height="100" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="270" y="78">Load balancer</text>
+      <text x="55" y="212">1.4.0</text><text x="190" y="212">1.4.0</text>
+      <text x="325" y="212">1.5.0</text><text x="460" y="212">1.5.0</text>
+      <text x="866" y="78">Load balancer</text>
+      <text x="721" y="200" font-weight="700">Blue: 1.4.0</text>
+      <text x="1011" y="200" font-weight="700">Green: 1.5.0</text>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="721" y="230">standby for rollback</text>
+      <text x="1011" y="230">receives all traffic</text>
+    </g>
+    <g font-size="16" fill="#5C6B7B">
+      <text x="0" y="290">Old and new versions serve traffic during the rollout.</text>
+      <text x="596" y="290">Traffic moves to the new environment in one switch.</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-bg)">
+      <line x1="250" y1="102" x2="60" y2="174"/>
+      <line x1="262" y1="102" x2="192" y2="174"/>
+      <line x1="278" y1="102" x2="324" y2="174"/>
+      <line x1="290" y1="102" x2="456" y2="174"/>
+      <line x1="900" y1="102" x2="990" y2="154"/>
+    </g>
+    <line x1="832" y1="102" x2="740" y2="156" stroke="#C3CAD0" stroke-width="1.8" stroke-dasharray="6 5"/>
+  </svg>
+  <p>A rolling deployment needs little extra capacity but runs two versions side by side for a while. Blue-green needs two full environments and rolls back by switching traffic back (Fowler, 2010).</p>
+  <aside class="notes">
+    A rolling deployment is what you did in Lab 08: replace instances a few at a time. It is the default for Kubernetes
+    Deployments and ECS services. The cost is a period where both versions serve users, so the two versions must work with
+    the same database schema and the same clients.
+    Blue-green, as Fowler described it in 2010, keeps two complete environments. You deploy to the idle one, test it, then
+    switch the router. Rollback is another switch, which takes seconds. The cost is double capacity during the release, and
+    database changes still need care because both environments use the same data.
+    The Harness platform supports rolling, blue-green and canary strategies for Kubernetes and for Amazon ECS. In the labs we
+    use the Kubernetes rolling update, because it needs no extra tooling.
+  </aside>
+</section>
+
+<section>
+  <h2>Canary releases</h2>
+  <svg class="diagram" viewBox="0 0 1136 300" role="img" aria-label="The load balancer sends 90 percent of requests to stable and 10 percent to the canary. Metrics are compared. If the canary is healthy, send more traffic; if worse, send all traffic back to stable.">
+    <defs><marker id="arr-can" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="110" width="170" height="80" rx="6"/>
+      <rect x="250" y="20" width="300" height="96" rx="6"/>
+      <rect x="630" y="102" width="210" height="96" rx="6"/>
+      <rect x="920" y="20" width="216" height="96" rx="6"/>
+      <rect x="920" y="184" width="216" height="96" rx="6"/>
+    </g>
+    <rect x="250" y="184" width="300" height="96" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="85" y="144">Load</text><text x="85" y="170">balancer</text>
+      <text x="400" y="58" font-weight="700">Stable: 1.4.0</text>
+      <text x="400" y="222" font-weight="700">Canary: 1.5.0</text>
+      <text x="735" y="140">Compare</text>
+      <text x="1028" y="58">Healthy:</text>
+      <text x="1028" y="222">Worse:</text>
+    </g>
+    <g font-size="17" fill="#5C6B7B" text-anchor="middle">
+      <text x="400" y="88">90% of requests</text>
+      <text x="400" y="252">10% of requests</text>
+      <text x="735" y="168">errors and latency</text>
+      <text x="1028" y="88">send more traffic</text>
+      <text x="1028" y="252">back to stable</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-can)">
+      <line x1="172" y1="140" x2="244" y2="72"/>
+      <line x1="172" y1="160" x2="244" y2="228"/>
+      <line x1="552" y1="72" x2="624" y2="132"/>
+      <line x1="552" y1="228" x2="624" y2="168"/>
+      <line x1="842" y1="132" x2="914" y2="72"/>
+      <line x1="842" y1="168" x2="914" y2="228"/>
+    </g>
+  </svg>
+  <p>A canary release sends a small share of real traffic to the new version and compares it with the current version before sending more (Sato, 2014). With plain Kubernetes, the split follows the Pod count.</p>
+  <aside class="notes">
+    The name comes from the canary that miners took underground to detect gas. Danilo Sato described the technique on
+    martinfowler.com in 2014.
+    The canary is judged by the same measures users notice: error rate and response time, compared with the stable
+    version over the same period. If it is as good or better, the share grows, for example 10, 50, then 100 percent. If it
+    is worse, all traffic goes back to stable, and only a small share of users saw the problem.
+    With plain Kubernetes, one canary Pod next to nine stable Pods behind the same Service gives roughly a 10 percent split.
+    Precise percentages need an ingress controller, a service mesh, or a delivery tool. The Harness platform's canary
+    strategy for Kubernetes and its Continuous Verification step automate the compare-and-decide part.
+  </aside>
+</section>
+
+<section>
+  <h2>Feature flags separate deployment from release</h2>
+<pre><code>if flags.is_enabled("new-departures-board", user):
+    return new_departures_board(flights)
+return departures_board(flights)</code></pre>
+  <ul>
+    <li>The new code is deployed to production, switched off.</li>
+    <li>Turning the flag on releases the feature to some users or to everyone, without a deployment.</li>
+    <li>Turning it off again is the fastest rollback for that feature.</li>
+    <li>Each flag needs an owner and a removal date. Old flags multiply the code paths you must test (Hodgson, 2017).</li>
+  </ul>
+  <aside class="notes">
+    Deployment is a technical event: new code is running. Release is a business event: users can use a feature. Flags
+    let you do them at different times. That allows trunk-based development from Day 1, because unfinished work can be
+    merged to main while switched off.
+    Pete Hodgson's article lists four kinds of toggles: release toggles for unfinished features, experiment toggles for A/B
+    tests, ops toggles to switch off expensive features under load, and permission toggles for features some users pay for.
+    The risk is debt. Every flag doubles the paths through that code, so release flags should be removed once the feature is
+    fully on. Some teams add a test that fails when a flag is older than its removal date.
+    Harness also sells a feature flag product, separate from its CI and CD modules; we do not use it in the course.
+  </aside>
+</section>
+
+<section>
+  <h2>Automated verification and rollback</h2>
+  <svg class="diagram" viewBox="0 0 1136 270" role="img" aria-label="Deploy, wait for rollout, smoke tests. Pass: continue to the next stage. Fail: roll back with kubectl rollout undo.">
+    <defs><marker id="arr-ver" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5">
+      <rect x="0" y="95" width="190" height="80" rx="6"/>
+      <rect x="240" y="95" width="200" height="80" rx="6"/>
+      <rect x="800" y="0" width="336" height="80" rx="6"/>
+      <rect x="800" y="190" width="336" height="80" rx="6"/>
+    </g>
+    <rect x="490" y="95" width="200" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <text x="95" y="129">Deploy new</text><text x="95" y="155">version</text>
+      <text x="340" y="129">Wait for the</text><text x="340" y="155">rollout</text>
+      <text x="590" y="141">Smoke tests</text>
+      <text x="968" y="46">Continue to the next stage</text>
+      <text x="968" y="222">Roll back</text>
+    </g>
+    <text x="968" y="250" font-size="16" fill="#14263D" text-anchor="middle" font-family="Menlo, monospace">kubectl rollout undo</text>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-ver)">
+      <line x1="192" y1="135" x2="234" y2="135"/>
+      <line x1="442" y1="135" x2="484" y2="135"/>
+      <line x1="692" y1="120" x2="794" y2="44"/>
+      <line x1="692" y1="150" x2="794" y2="226"/>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="728" y="70">pass</text>
+      <text x="728" y="214">fail</text>
+    </g>
+  </svg>
+  <p>A smoke test calls the new version the way a user would: a health check, a version check, one real request. The Lab 09 smoke test checks the version through the ingress; a "Going further" task adds the other two. A step with <code>when: failure()</code> rolls back when any earlier step fails.</p>
+  <aside class="notes">
+    Verification answers the question "is the new version working for users?" right after the deployment, while the
+    previous version is still one command away.
+    The lab pipeline uses three checks in increasing order of value: the rollout finishes (all Pods ready), the health
+    and version endpoints return the expected values through the Ingress, and one real API request returns flight data.
+    In the Harness platform, the Verify step goes further: it compares metrics and logs of the new version with a baseline,
+    using sources such as Prometheus, Datadog or CloudWatch, and can trigger the stage's rollback.
+    Automated rollback depends on the earlier practices: immutable images, a previous ReplicaSet to return to, and
+    database changes that the old version can still work with. Ask the class which of these would be hardest in their own
+    systems.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 09 steps and the Harness platform</h2>
+  <table class="full">
+    <tr><th>Lab 09 step in Harness Open Source</th><th>Harness platform feature for the same job</th></tr>
+    <tr><td>Run step with pytest and a Postgres background step</td><td>Build stage with a Run step and a Background step</td></tr>
+    <tr><td>Docker plugin step that builds and pushes the image</td><td>Build and Push to Docker step with a registry connector</td></tr>
+    <tr><td>Trivy scan step</td><td>Security Testing Orchestration with the Aqua Trivy step</td></tr>
+    <tr><td>kubectl step with a kubeconfig secret</td><td>Deploy stage: service, environment, infrastructure definition, Kubernetes connector and delegate</td></tr>
+    <tr><td>Smoke test step</td><td>Verify step (Continuous Verification) or a Shell Script step</td></tr>
+    <tr><td>Rollback step with <code>when: failure()</code></td><td>Failure strategy with the Rollback Stage action</td></tr>
+    <tr><td>Promote pipeline started by a release tag</td><td>Approval stage, then a Deploy stage for the prod environment</td></tr>
+  </table>
+  <aside class="notes">
+    Use this table to connect the lab to the tool United uses. Each row is something the lab does by hand in a step, and
+    the platform does with a dedicated feature.
+    The biggest difference is the Deploy stage. In the platform you do not write kubectl commands. You define a service
+    (the manifests and the artifact), an environment (dev or prod) and an infrastructure definition (which cluster and
+    namespace). A delegate running inside United's network holds the cluster access, so no kubeconfig is stored in the
+    pipeline. The platform also records which version runs in which environment, and offers rollback as a stage action.
+    After the course, open one of your team's pipelines in the Harness platform and find each row of this table in it.
+  </aside>
+</section>
+
+<section>
+  <h2>DORA metrics revisited</h2>
+  <table class="full">
+    <tr><th>Metric</th><th>Practices from this course that improve it</th></tr>
+    <tr><td>Deployment frequency</td><td>Small pull requests, an automated pipeline, one image promoted through environments</td></tr>
+    <tr><td>Lead time for changes</td><td>A pipeline on every push, fast tests, few manual approvals</td></tr>
+    <tr><td>Change failure rate</td><td>Tests and quality gates, image scanning, readiness probes, canary releases</td></tr>
+    <tr><td>Failed deployment recovery time</td><td>Immutable images, kept ReplicaSets, automated rollback</td></tr>
+  </table>
+  <p>Forsgren et al. (2018) found that teams with high delivery speed also had high stability. The same practices improved both.</p>
+  <aside class="notes">
+    We started the course on Day 1 with these four measures. Now each one maps to things you built.
+    Two of them measure speed: how often you deploy and how long a commit takes to reach production. Two measure
+    stability: how often a deployment causes a failure and how long it takes to recover. The research behind Accelerate
+    found no trade-off between the two groups: the best performers were fast and stable at the same time, because small,
+    automated, reversible changes are both quicker and safer.
+    The 2024 DORA report also tracks a rework rate, the share of deployments that were unplanned fixes.
+    Ask the class to pick one metric their team could measure next week, and which source they would use: Harness deployment
+    history, Git, or incident records.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 09: End-to-end delivery pipeline</h2>
+  <p>105 minutes. Open <code>labs/09-end-to-end-delivery.md</code> in the course repository.</p>
+  <ul>
+    <li>Build one pipeline: test, build, scan, push, deploy to dev and smoke test.</li>
+    <li>Promote the same image to prod by pushing a release tag.</li>
+    <li>Release a broken version on purpose and watch the pipeline roll it back.</li>
+    <li>Compare each step with its Harness platform feature.</li>
+  </ul>
+  <aside class="notes">
+    This lab uses everything from the course: the repository, branch rule and pull request flow from Day 1, the
+    namespaces and the deploy ServiceAccount from Day 2, and the image and manifests from this morning.
+    Expect the first run to take several minutes, mostly for the image build and the scan database download. Later runs
+    are faster.
+    The broken release is the most important part. Students should see the deploy step fail when the new Pods never become
+    ready, the rollback step run, and the app in the browser still showing the previous version.
+    Anyone who finishes early can try a "Going further" task, such as a tag rule that limits who may create release tags,
+    or a smoke test for prod that reads the departures board.
+    We meet again at 16:50 for the summary.
+  </aside>
+</section>
+
+<!-- ============================== Close ============================== -->
+
+<section>
+  <h2>What the three days covered</h2>
+  <table class="full">
+    <tr><th>Day</th><th>Concepts</th><th>Labs</th></tr>
+    <tr><td>1</td><td>DevOps foundations, continuous integration, pipelines in Harness, testing and quality gates</td><td>01–03</td></tr>
+    <tr><td>2</td><td>Infrastructure as code, Terraform, infrastructure in pipelines, credential management</td><td>04–06</td></tr>
+    <tr><td>3</td><td>Containers, Compose, ECS and Fargate, Kubernetes, continuous delivery</td><td>07–09</td></tr>
+  </table>
+  <p>Your Harness project now tests, builds, scans and deploys the flight-status API to two environments that you defined as code.</p>
+  <aside class="notes">
+    Summarise the course as one path. On Day 1 a change became a pull request with automated checks. On Day 2 the
+    environments became code with a reviewed plan and a least-privilege identity. On Day 3 the application became an
+    immutable image, deployed by a pipeline with verification and rollback.
+    Ask each participant to name one practice they will try in their team first. Writing it down makes it more likely to
+    happen.
+    Leave time for questions about United's own Harness pipelines, since many participants will go back to them on Monday.
+  </aside>
+</section>
+
+<section>
+  <h2>Next steps and feedback</h2>
+  <ul>
+    <li>Keep the course repository. Every lab runs again on a new Ubuntu 24.04 machine.</li>
+    <li>Open one of your team's pipelines in the Harness platform and find each stage from the Lab 09 mapping table.</li>
+    <li>Pluralsight has paths on Docker, Kubernetes, Terraform and AWS for more depth on each topic.</li>
+    <li>Please fill in the course survey. The next version of this course uses your answers.</li>
+  </ul>
+  <aside class="notes">
+    The labs are written to run on a blank Ubuntu 24.04 machine, so participants can repeat them later on any VM with the
+    same specification. The catch-up script makes it possible to start at any lab.
+    The most useful next step is to apply the mapping table to a real pipeline. It turns the course concepts into questions
+    about their own work: where are our tests, where is the scan, how do we roll back?
+    Thank the group, give them the survey link from Pluralsight, and stay on the call for questions.
+  </aside>
+</section>
+
+<section>
+  <h2>References</h2>
+  <div class="cols">
+    <ul class="refs">
+      <li>Burns, B., Grant, B., Oppenheimer, D., Brewer, E., and Wilkes, J. (2016). Borg, Omega, and Kubernetes. <em>ACM Queue</em> 14(1).</li>
+      <li>Forsgren, N., Humble, J., and Kim, G. (2018). <em>Accelerate</em>. IT Revolution.</li>
+      <li>Fowler, M. (2010). BlueGreenDeployment. martinfowler.com</li>
+      <li>Hodgson, P. (2017). Feature Toggles (aka Feature Flags). martinfowler.com</li>
+      <li>Humble, J., and Farley, D. (2010). <em>Continuous Delivery</em>. Addison-Wesley.</li>
+      <li>Sato, D. (2014). CanaryRelease. martinfowler.com</li>
+      <li>Souppaya, M., Morello, J., and Scarfone, K. (2017). <em>Application Container Security Guide</em>. NIST SP 800-190.</li>
+      <li>Wiggins, A. (2011). <em>The Twelve-Factor App</em>. 12factor.net</li>
+    </ul>
+    <ul class="refs">
+      <li>Open Container Initiative. Image Format, Runtime and Distribution Specifications. opencontainers.org</li>
+      <li>SLSA (2023). Supply-chain Levels for Software Artifacts, v1.0. slsa.dev</li>
+      <li>Linux manual pages: namespaces(7), cgroups(7). man7.org</li>
+      <li>Kubernetes documentation: Deployments, probes, resource management, RBAC. kubernetes.io/docs</li>
+      <li>Amazon Web Services. Amazon ECS Developer Guide: task definitions and Fargate. docs.aws.amazon.com</li>
+      <li>DORA (2024). Accelerate State of DevOps Report. dora.dev</li>
+      <li>Harness documentation: CI, CD, STO and failure strategies. developer.harness.io</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    These are the sources behind today's lectures. The three most useful for further reading are the Borg, Omega and
+    Kubernetes article, NIST SP 800-190, and the martinfowler.com articles on blue-green, canary and feature toggles.
+    All of them are free to read online except the two books. For the AWS side, the Amazon ECS Developer Guide chapter on
+    task definitions is the best companion to the Lab 07 mapping exercise. The Kubernetes documentation pages on probes and
+    on rolling updates match the Lab 08 exercises one to one.
+  </aside>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280, height: 720, margin: 0, center: false, hash: true,
+    controls: false, progress: false, transition: 'none', backgroundTransition: 'none',
+    slideNumber: 'c', showSlideNumber: 'all', pdfSeparateFragments: false,
+    plugins: [ RevealNotes ]
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# The dev environment: namespace flightops-dev, http://flights-dev.localhost:8080
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: flightops-dev
+resources:
+  - ../base
+configMapGenerator:
+  - name: flight-status-config
+    literals:
+      - APP_ENV=dev
+images:
+  - name: flight-status
+    newName: k3d-registry.localhost:5000/flight-status
+    newTag: "1.0.0"
+patches:
+  - target:
+      kind: Ingress
+      name: flight-status
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: flights-dev.localhost

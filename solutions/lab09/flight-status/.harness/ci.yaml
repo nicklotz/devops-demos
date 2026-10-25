@@ -1,0 +1,109 @@
+# Continuous integration and delivery for flight-status (Lab 09).
+# Every run: lint, test, build the image and scan it.
+# Pushes to main (merged pull requests) also deploy to dev and run a smoke test.
+# If the deployment or the smoke test fails, the rollback step restores the
+# previous version in dev.
+kind: pipeline
+spec:
+  stages:
+  - name: build
+    type: ci
+    spec:
+      steps:
+      - name: db
+        type: background
+        spec:
+          container: postgres:17-alpine
+          envs:
+            POSTGRES_USER: flights
+            POSTGRES_PASSWORD: flights
+            POSTGRES_DB: flights
+      - name: install
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            python -m venv .venv
+            . .venv/bin/activate
+            pip install --quiet -r requirements-dev.txt
+      - name: lint
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            . .venv/bin/activate
+            ruff check .
+            ruff format --check .
+      - name: test
+        type: run
+        spec:
+          container: python:3.12-slim
+          envs:
+            DATABASE_URL: postgresql://flights:flights@db:5432/flights
+          script: |
+            . .venv/bin/activate
+            pytest --cov=flightstatus --cov-report=term-missing --cov-fail-under=90
+      - name: image
+        type: plugin
+        spec:
+          name: docker
+          inputs:
+            registry: k3d-registry.localhost:5000
+            repo: k3d-registry.localhost:5000/flight-status
+            insecure: true
+            # Plugin inputs are strings. Separate several values with commas.
+            tags: ${{ build.commit }}
+            build_args: APP_VERSION=1.0.${{ build.number }},GIT_COMMIT=${{ build.commit }}
+      - name: scan
+        type: run
+        spec:
+          container: aquasec/trivy:0.75.0
+          script: |
+            trivy image --insecure --no-progress --skip-version-check --severity CRITICAL --ignore-unfixed --exit-code 1 \
+              k3d-registry.localhost:5000/flight-status:${{ build.commit }}
+      - name: deploy
+        type: run
+        when: build.event == "push" and build.target == "main"
+        spec:
+          container: alpine/k8s:1.35.9
+          envs:
+            KUBECONFIG_CONTENT: ${{ secrets.get("dev_kubeconfig") }}
+          script: |
+            printf '%s\n' "$KUBECONFIG_CONTENT" > /tmp/kubeconfig
+            export KUBECONFIG=/tmp/kubeconfig
+            touch .deploy-started
+            cd k8s/dev
+            kustomize edit set image flight-status=k3d-registry.localhost:5000/flight-status:${{ build.commit }}
+            kubectl apply -k .
+            kubectl rollout status deployment/flight-status --timeout=120s
+      - name: smoke
+        type: run
+        when: build.event == "push" and build.target == "main"
+        spec:
+          container: alpine/k8s:1.35.9
+          script: |
+            for attempt in $(seq 1 15); do
+              if curl -fsS -H "Host: flights-dev.localhost" http://k3d-devops-serverlb/version > version.json \
+                && jq -e '.version == "1.0.${{ build.number }}"' version.json; then
+                exit 0
+              fi
+              sleep 2
+            done
+            cat version.json
+            exit 1
+      - name: rollback
+        type: run
+        when: failure()
+        spec:
+          container: alpine/k8s:1.35.9
+          envs:
+            KUBECONFIG_CONTENT: ${{ secrets.get("dev_kubeconfig") }}
+          script: |
+            if [ ! -f .deploy-started ]; then
+              echo "This run did not deploy anything. Nothing to roll back."
+              exit 0
+            fi
+            printf '%s\n' "$KUBECONFIG_CONTENT" > /tmp/kubeconfig
+            export KUBECONFIG=/tmp/kubeconfig
+            kubectl rollout undo deployment/flight-status
+            kubectl rollout status deployment/flight-status --timeout=120s

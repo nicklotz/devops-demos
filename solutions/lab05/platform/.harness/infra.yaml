@@ -1,0 +1,37 @@
+# Terraform pipeline for the platform repository (Lab 05).
+# Pull requests: check formatting, validate and show the plan.
+# Pushes to main (merged pull requests): apply the changes.
+kind: pipeline
+spec:
+  stages:
+  - name: terraform
+    type: ci
+    spec:
+      envs:
+        KUBE_CONFIG_PATH: /tmp/kubeconfig
+        TF_IN_AUTOMATION: "true"
+        TF_INPUT: "false"
+      steps:
+      - name: plan
+        type: run
+        spec:
+          container: hashicorp/terraform:1.17.0
+          envs:
+            KUBECONFIG_CONTENT: ${{ secrets.get("platform_kubeconfig") }}
+          script: |
+            printf '%s\n' "$KUBECONFIG_CONTENT" > "$KUBE_CONFIG_PATH"
+            terraform fmt -check -recursive
+            terraform init
+            terraform validate
+            terraform plan -lock-timeout=60s
+      - name: apply
+        type: run
+        when: build.event == "push" and build.target == "main"
+        spec:
+          container: hashicorp/terraform:1.17.0
+          envs:
+            KUBECONFIG_CONTENT: ${{ secrets.get("platform_kubeconfig") }}
+          script: |
+            printf '%s\n' "$KUBECONFIG_CONTENT" > "$KUBE_CONFIG_PATH"
+            terraform init
+            terraform apply -auto-approve -lock-timeout=60s

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-status
+  labels:
+    app: flight-status
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  # Mark the rollout as failed if it makes no progress for 90 seconds.
+  progressDeadlineSeconds: 90
+  selector:
+    matchLabels:
+      app: flight-status
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # at most one extra pod during an update
+      maxUnavailable: 0  # never go below the desired number of ready pods
+  template:
+    metadata:
+      labels:
+        app: flight-status
+    spec:
+      containers:
+        - name: app
+          image: flight-status   # replaced by the overlay's "images" setting
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: flight-status-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flight-status-db
+                  key: DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false

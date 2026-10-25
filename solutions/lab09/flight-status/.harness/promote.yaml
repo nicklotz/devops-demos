@@ -1,0 +1,68 @@
+# Promote a release to production (Lab 09).
+# Runs when a tag is created. It deploys the image that the ci pipeline
+# built and scanned for the tagged commit. Nothing is rebuilt.
+kind: pipeline
+spec:
+  stages:
+  - name: promote
+    type: ci
+    spec:
+      steps:
+      - name: check
+        type: run
+        when: build.event == "tag"
+        spec:
+          container: alpine/k8s:1.35.9
+          script: |
+            echo "Promoting commit ${{ build.commit }} (${{ build.ref }})"
+            # wget, because curl sends every *.localhost name to 127.0.0.1.
+            wget -q -O /dev/null \
+              --header "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+              http://k3d-registry.localhost:5000/v2/flight-status/manifests/${{ build.commit }}
+            echo "Image found: k3d-registry.localhost:5000/flight-status:${{ build.commit }}"
+      - name: deploy
+        type: run
+        when: build.event == "tag"
+        spec:
+          container: alpine/k8s:1.35.9
+          envs:
+            KUBECONFIG_CONTENT: ${{ secrets.get("prod_kubeconfig") }}
+          script: |
+            printf '%s\n' "$KUBECONFIG_CONTENT" > /tmp/kubeconfig
+            export KUBECONFIG=/tmp/kubeconfig
+            touch .deploy-started
+            cd k8s/prod
+            kustomize edit set image flight-status=k3d-registry.localhost:5000/flight-status:${{ build.commit }}
+            kubectl apply -k .
+            kubectl rollout status deployment/flight-status --timeout=120s
+      - name: smoke
+        type: run
+        when: build.event == "tag"
+        spec:
+          container: alpine/k8s:1.35.9
+          script: |
+            for attempt in $(seq 1 15); do
+              if curl -fsS -H "Host: flights.localhost" http://k3d-devops-serverlb/version > version.json \
+                && jq -e '.commit == "${{ build.commit }}"' version.json; then
+                exit 0
+              fi
+              sleep 2
+            done
+            cat version.json
+            exit 1
+      - name: rollback
+        type: run
+        when: failure()
+        spec:
+          container: alpine/k8s:1.35.9
+          envs:
+            KUBECONFIG_CONTENT: ${{ secrets.get("prod_kubeconfig") }}
+          script: |
+            if [ ! -f .deploy-started ]; then
+              echo "This run did not deploy anything. Nothing to roll back."
+              exit 0
+            fi
+            printf '%s\n' "$KUBECONFIG_CONTENT" > /tmp/kubeconfig
+            export KUBECONFIG=/tmp/kubeconfig
+            kubectl rollout undo deployment/flight-status
+            kubectl rollout status deployment/flight-status --timeout=120s

@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intermediate DevOps · Day 2: Infrastructure as code and credentials</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+  /* Day 2 additions: a compact agenda table, a lower subtitle for the three-line title, small references. */
+  .reveal table.compact td { padding: 6px 22px 6px 0; font-size: 18px; }
+  .reveal table.compact th { font-size: 16px; padding-bottom: 6px; }
+  .reveal section.title-slide .t-sub.low { top: 430px; }
+  .reveal ul.refs > li { font-size: 18px; line-height: 1.35; margin-bottom: 10px; }
+  .reveal ul.refs > li::before { top: 10px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- ===================== Opening ===================== -->
+
+<section class="title-slide" data-state="title" data-background-color="#0B1F3A">
+  <div class="t-band"></div>
+  <div class="t-main">Intermediate DevOps<br>Day 2: Infrastructure as code<br>and credentials</div>
+  <div class="t-sub low">United Airlines · Pluralsight instructor-led training</div>
+  <div class="t-meta">Nick Lotz<br>27–29 October 2026</div>
+  <aside class="notes">
+    Welcome back to Day 2. Yesterday was about continuous integration: getting code changes tested and merged safely.
+    Today moves one layer down, to the infrastructure the application runs on, and to the credentials that pipelines and
+    applications need. The morning covers infrastructure as code as a set of ideas, then Terraform and the AWS tools United
+    uses, CloudFormation and the CDK. After lunch we run Terraform from a pipeline, and the last block is credential management.
+    Each lecture is followed by a lab that applies it on your lab machine. Before we start, check that your lab machine is
+    running and that Harness Open Source still opens on localhost:3000.
+  </aside>
+</section>
+
+<section>
+  <h2>What you built on Day 1</h2>
+  <ul>
+    <li>Harness Open Source running in Docker on your lab machine, with the <code>flightops</code> project and the <code>flight-status</code> repository.</li>
+    <li>A CI pipeline in <code>.harness/ci.yaml</code> that lints the code and runs unit and API tests in containers.</li>
+    <li>Integration tests that run against a Postgres background service.</li>
+    <li>A branch rule on <code>main</code> that requires a pull request and a passing pipeline check.</li>
+  </ul>
+  <p>Today you create the infrastructure the application will run on, and you manage the credentials it needs.</p>
+  <aside class="notes">
+    Spend two or three minutes here. Ask who finished Lab 03 and who did not. Anyone who did not finish can run
+    scripts/catch-up.sh 04 from the course repository during the first lecture. The script brings a lab machine to the
+    starting state of Lab 04, so nobody is blocked by yesterday. Ask one or two people what surprised them yesterday. Common
+    answers are that each pipeline step runs in its own container, and that the branch rule blocked even the administrator.
+    Both points matter today. Infrastructure code also goes through pull requests and a pipeline, and the same branch rule
+    protects it.
+  </aside>
+</section>
+
+<section>
+  <h2>Day 2 agenda</h2>
+  <table class="compact">
+    <tr><th>Time (US Central)</th><th>Session</th></tr>
+    <tr><td>09:00</td><td>Day 1 recap</td></tr>
+    <tr><td>09:10</td><td>Lecture: Infrastructure as code concepts</td></tr>
+    <tr><td>09:40</td><td>Lecture: Terraform, CloudFormation and the AWS CDK</td></tr>
+    <tr><td>10:10</td><td>Break</td></tr>
+    <tr><td>10:20</td><td>Lab 04: Terraform foundations on Kubernetes (120 minutes)</td></tr>
+    <tr><td>12:20</td><td>Lunch</td></tr>
+    <tr><td>13:05</td><td>Lecture: Infrastructure as code in pipelines</td></tr>
+    <tr><td>13:35</td><td>Lab 05: Terraform in the pipeline (75 minutes)</td></tr>
+    <tr><td>14:50</td><td>Break</td></tr>
+    <tr><td>15:00</td><td>Lecture: Credential management</td></tr>
+    <tr><td>15:35</td><td>Lab 06: Managing credentials (75 minutes)</td></tr>
+    <tr><td>16:50</td><td>Summary and questions</td></tr>
+  </table>
+  <aside class="notes">
+    The day has the same rhythm as yesterday: a short lecture, then a lab that uses it. Lab 04 is the longest lab of the
+    course at two hours, because it installs the Kubernetes tools and introduces Terraform from zero. Lab 05 and Lab 06 build
+    on the Lab 04 results, so keep your cluster and your Terraform folder. If you fall behind, the catch-up script exists
+    for each lab. Remind people of the break times and that the labs have "Going further" sections for those who finish early.
+  </aside>
+</section>
+
+<!-- ===================== L5: Infrastructure as code concepts ===================== -->
+
+<section>
+  <h2>How infrastructure was managed before code</h2>
+  <ul>
+    <li>Engineers built and changed servers by hand, from a runbook or from memory.</li>
+    <li>New servers came through tickets and took days or weeks.</li>
+    <li>Servers that started the same became different over time. Fowler (2012) calls them snowflake servers.</li>
+    <li>Rebuilding a failed server was slow, because nobody knew its full configuration.</li>
+  </ul>
+  <p>Cloud APIs, starting with Amazon EC2 in 2006, made it possible to create servers and networks from a program in minutes.</p>
+  <aside class="notes">
+    Start with history, because infrastructure as code is an answer to a specific problem. In a data centre, a server was a
+    physical purchase and its setup was manual. Each emergency fix made one server a little different from its neighbours.
+    Martin Fowler's 2012 bliki entry "SnowflakeServer" describes servers that are unique, fragile and hard to reproduce.
+    The change came with programmable infrastructure. When Amazon EC2 launched in 2006, a server became an API call, and an
+    API call can be written down, reviewed and repeated. Ask the class how environments were requested and changed in
+    their previous roles, including mainframe or operations work. Most will recognise tickets, change windows and runbooks.
+    Sources: Fowler, M. (2012) SnowflakeServer; Morris, K. (2020) Infrastructure as Code, chapter 1.
+  </aside>
+</section>
+
+<section>
+  <h2>What infrastructure as code means</h2>
+  <p>Infrastructure as code applies software development practices to infrastructure (Morris, 2020).</p>
+  <ul>
+    <li>Definitions of servers, networks, clusters and permissions are files in version control.</li>
+    <li>Every change is a commit with an author, a date and a reason.</li>
+    <li>Changes are reviewed in pull requests before anyone applies them.</li>
+    <li>Automation applies each change the same way, in every environment.</li>
+  </ul>
+  <p>The files describe the infrastructure you intend to have. Lab 04 shows what happens when the real infrastructure differs.</p>
+  <aside class="notes">
+    Kief Morris defines infrastructure as code as an approach to infrastructure automation based on practices from software
+    development. The important word is practices. Writing a script is not enough. The script must be in version control, it
+    must be reviewed, and it must run the same way every time. The benefits follow from those practices: environments can be
+    rebuilt after a failure, dev and prod are built from the same code, and the history shows who changed what and why.
+    There are also costs. The team has to learn the tools, manage state, and maintain the code like any other code.
+    Connect this to Day 1: the pull request and pipeline you built for the application will now be used for infrastructure.
+    Source: Morris, K. (2020) Infrastructure as Code, 2nd edition, O'Reilly, chapter 1.
+  </aside>
+</section>
+
+<section>
+  <h2>Kinds of infrastructure as code tools</h2>
+  <table>
+    <tr><th>Category</th><th>What it manages</th><th>Examples</th></tr>
+    <tr><td>Provisioning</td><td>Cloud and platform resources, through their APIs</td><td>Terraform, OpenTofu, AWS CloudFormation, AWS CDK, Pulumi</td></tr>
+    <tr><td>Configuration management</td><td>Packages, files and services on existing servers</td><td>Ansible, Chef, Puppet, CFEngine</td></tr>
+    <tr><td>Image building</td><td>Machine images and container images</td><td>Packer, Dockerfiles</td></tr>
+    <tr><td>Kubernetes objects</td><td>Workloads and settings inside a cluster</td><td>YAML manifests, Helm, Kustomize</td></tr>
+  </table>
+  <p>This course uses Terraform for provisioning today, and Kubernetes manifests on Day 3.</p>
+  <aside class="notes">
+    The tools fall into categories, and teams often combine one tool from each. Provisioning tools create resources such as
+    networks, clusters and databases through cloud APIs. Configuration management tools change software and files on servers
+    that already exist; Ansible was part of the earlier version of this course. Image building tools produce machine or
+    container images, which supports the immutable approach on the next slides. Kubernetes manifests describe objects inside
+    a cluster. A note on Terraform and OpenTofu: in August 2023 HashiCorp changed Terraform's licence to the Business Source
+    License, and the community created the OpenTofu fork under the Linux Foundation. The two are still very similar.
+    At United, AWS infrastructure is defined with the AWS CDK, which we compare with Terraform later this morning.
+  </aside>
+</section>
+
+<section>
+  <h2>Imperative and declarative instructions</h2>
+  <div class="cols">
+    <div>
+      <h3>Imperative</h3>
+      <p>You list the commands, in order. You decide what to do if a step already happened.</p>
+<pre><code>kubectl create namespace flightops-dev
+kubectl create quota dev-quota \
+  --hard=pods=10 -n flightops-dev</code></pre>
+    </div>
+    <div>
+      <h3>Declarative</h3>
+      <p>You describe the result. The tool compares it with what exists and works out the steps.</p>
+<pre><code>resource "kubernetes_namespace_v1" "dev" {
+  metadata {
+    name = "flightops-dev"
+  }
+}</code></pre>
+    </div>
+  </div>
+  <aside class="notes">
+    Run the imperative commands once and they work. Run them a second time and the first command fails, because the namespace
+    already exists. The author of an imperative script has to handle every starting state: nothing exists, some of it exists,
+    or all of it exists. A declarative tool takes a description of the end state. It reads the current state, compares, and
+    performs only the steps needed. This is why declarative tools dominate infrastructure as code. Imperative steps still have
+    a place, for example a one-off data migration. Ask the class which style a Dockerfile uses. It is mostly imperative: a list
+    of commands that build an image. A Kubernetes manifest is declarative.
+  </aside>
+</section>
+
+<section>
+  <h2>Idempotency</h2>
+  <p>An operation is idempotent when running it many times has the same effect as running it once.</p>
+  <table>
+    <tr><th>Command</th><th>First run</th><th>Second run</th></tr>
+    <tr><td><code>kubectl create namespace dev</code></td><td>Creates the namespace</td><td>Fails with AlreadyExists</td></tr>
+    <tr><td><code>kubectl apply -f namespace.yaml</code></td><td>Creates the namespace</td><td>Reports "unchanged"</td></tr>
+    <tr><td><code>terraform apply</code></td><td>Creates the namespace</td><td>Reports "No changes"</td></tr>
+    <tr><td><code>mkdir -p /opt/app</code></td><td>Creates the folder</td><td>Does nothing</td></tr>
+  </table>
+  <p>You can re-run an idempotent operation after a failure or a timeout without side effects.</p>
+  <aside class="notes">
+    Idempotency comes from mathematics: applying a function twice gives the same result as applying it once. For operations,
+    it means repeating the operation does not change the outcome. This property is what makes automation safe. Pipelines are
+    re-run after a network error, a timeout, or a failed later step. If the operation is idempotent, a re-run is harmless.
+    The table shows the same goal reached four ways. kubectl create fails on the second run with
+    "Error from server (AlreadyExists)". kubectl apply reports "namespace/dev unchanged". Terraform prints
+    "No changes. Your infrastructure matches the configuration." mkdir with -p succeeds silently. You will see the Terraform
+    message in Lab 04 when you run apply twice.
+  </aside>
+</section>
+
+<section>
+  <h2>Desired state and convergence</h2>
+  <svg class="diagram" viewBox="0 0 1136 240" role="img" aria-label="Declared state in code, read the actual state, calculate the difference, apply only the difference, then repeat">
+    <defs><marker id="arr-d2-conv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="40" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="80">Declared state</text><text x="110" y="105">in code</text>
+      <rect x="290" y="40" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="400" y="80">Read the actual</text><text x="400" y="105">state</text>
+      <rect x="580" y="40" width="220" height="90" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="690" y="80">Calculate the</text><text x="690" y="105">difference</text>
+      <rect x="870" y="40" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="980" y="80">Apply only the</text><text x="980" y="105">difference</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none">
+      <line x1="222" y1="85" x2="286" y2="85" marker-end="url(#arr-d2-conv)"/>
+      <line x1="512" y1="85" x2="576" y2="85" marker-end="url(#arr-d2-conv)"/>
+      <line x1="802" y1="85" x2="866" y2="85" marker-end="url(#arr-d2-conv)"/>
+      <path d="M980,132 L980,185 L400,185 L400,136" marker-end="url(#arr-d2-conv)"/>
+    </g>
+    <text x="690" y="220" font-size="17" fill="#5C6B7B" text-anchor="middle">Repeat on every run. If nothing differs, nothing changes.</text>
+  </svg>
+  <p>Mark Burgess designed CFEngine in 1993 around this idea. Each run moves a system closer to the declared state. Terraform plans and Kubernetes controllers work the same way.</p>
+  <aside class="notes">
+    Desired state means you write down what the system should look like. Convergence means a tool repeatedly compares the
+    system with that description and corrects the differences. Mark Burgess built CFEngine at Oslo University College in 1993
+    on this principle, and later formalised it in his work on promise theory. A convergent tool does not need to know the
+    history of a system. It only needs the current state and the desired state. Terraform does one pass of this loop each
+    time you run plan and apply. Kubernetes controllers run the loop continuously, every few seconds, which you will see on
+    Day 3 when a deleted pod comes back by itself. Source: Burgess, M. (1995) Cfengine: a site configuration engine,
+    USENIX Computing Systems 8(3).
+  </aside>
+</section>
+
+<section>
+  <h2>Configuration drift</h2>
+  <ul>
+    <li>Drift is any difference between the code and the real infrastructure.</li>
+    <li>It comes from manual changes in a console, emergency fixes, and other tools that change the same objects.</li>
+    <li>Terraform reports drift in the next plan. CloudFormation has a drift detection command.</li>
+    <li>After you find drift, apply the code to remove it, or change the code to keep it.</li>
+  </ul>
+  <p>In Lab 04 you make a manual change with kubectl and find it in the next Terraform plan.</p>
+  <aside class="notes">
+    Drift is the most common problem for teams that use infrastructure as code. Someone fixes a production problem at 2 a.m. in the console, and the
+    fix never reaches the code. The next apply quietly undoes the fix, or the next environment built from the code lacks it.
+    Terraform detects drift because every plan reads the real objects and compares them with the code and the state.
+    CloudFormation offers drift detection for stacks as a separate operation. The response to drift is a decision. If the
+    manual change was wrong, apply the code and the change is reverted. If the manual change was right, put it in the code
+    through a pull request, so the code and reality match again. Teams reduce drift by removing write access to production
+    consoles for people and giving it only to the pipeline. Source: Morris (2020), chapter 2.
+  </aside>
+</section>
+
+<section>
+  <h2>Mutable and immutable infrastructure</h2>
+  <div class="cols">
+    <div>
+      <h3>Mutable</h3>
+      <ul>
+        <li>Each server is updated in place.</li>
+        <li>Its state depends on every change made since it was built.</li>
+        <li>Rollback means undoing changes one by one.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Immutable</h3>
+      <ul>
+        <li>A change produces a new image. New servers or containers replace the old ones.</li>
+        <li>Nothing is modified after deployment.</li>
+        <li>Rollback means deploying the previous image again.</li>
+      </ul>
+    </div>
+  </div>
+  <p>Containers and Kubernetes Deployments follow the immutable model. You will use it on Day 3.</p>
+  <aside class="notes">
+    Mutable infrastructure is the traditional model: a long-lived server receives patches and configuration changes over
+    years. Even with configuration management, its state depends on its history. Immutable infrastructure replaces instead of
+    changing. You build a new image with the change, start new instances from it, and remove the old instances. Martin Fowler's
+    2012 entry "PhoenixServer" describes servers that are regularly burned down and rebuilt from code. Chad Fowler popularised
+    the term immutable infrastructure in a 2013 blog post. The main benefit is predictability. The image you tested is the image that runs in production.
+    Rollback becomes a redeploy of the previous image, which is fast and reliable. The cost is that you need an image build
+    pipeline and stateless servers. Data must be stored outside the instance, in a database or a volume.
+  </aside>
+</section>
+
+<section>
+  <h2>The dependency graph</h2>
+  <svg class="diagram" viewBox="0 0 1136 320" role="img" aria-label="Namespace flightops-dev before resource quota, secret and service; secret before the postgres deployment">
+    <defs><marker id="arr-d2-dag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="120" width="240" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="120" y="155">Namespace</text><text x="120" y="180">flightops-dev</text>
+      <rect x="360" y="10" width="250" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="485" y="52">Resource quota</text>
+      <rect x="360" y="125" width="250" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="485" y="153">Secret:</text><text x="485" y="178">database password</text>
+      <rect x="360" y="240" width="250" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="485" y="282">Service: postgres</text>
+      <rect x="730" y="125" width="270" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="865" y="167">Deployment: postgres</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-dag)">
+      <line x1="242" y1="145" x2="356" y2="52"/>
+      <line x1="242" y1="160" x2="356" y2="160"/>
+      <line x1="242" y1="175" x2="356" y2="268"/>
+      <line x1="612" y1="160" x2="726" y2="160"/>
+    </g>
+  </svg>
+  <p>An arrow means the first object must exist before the second. Terraform builds this graph from references in the code. It creates independent objects in parallel, up to 10 at a time by default, and destroys in reverse order.</p>
+  <aside class="notes">
+    This graph matches the dev environment you build in Lab 04. The namespace must exist before anything can be created in
+    it. The quota, the secret and the service only depend on the namespace, so Terraform creates them at the same time.
+    The Postgres deployment reads the password from the secret, so it waits for the secret. Terraform finds these edges
+    because one resource refers to an attribute of another, for example metadata[0].name of the namespace. You rarely need
+    depends_on; references are enough. The default parallelism of 10 can be changed with the -parallelism flag. When you
+    destroy, the order reverses: the deployment goes first and the namespace last. The command terraform graph prints the
+    graph in DOT format if you want to see it for your own code.
+  </aside>
+</section>
+
+<!-- ===================== L6: Terraform, CloudFormation and CDK ===================== -->
+
+<section>
+  <h2>How Terraform is built</h2>
+  <svg class="diagram" viewBox="0 0 1136 300" role="img" aria-label="Configuration files and state go into Terraform core, which talks to provider plugins over gRPC, which call the Kubernetes API server and AWS APIs">
+    <defs>
+      <marker id="arr-d2-arch" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker>
+    </defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="30" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="70">Configuration</text><text x="110" y="96">.tf files</text>
+      <rect x="0" y="190" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="230">State</text><text x="110" y="256" font-size="17">terraform.tfstate</text>
+      <rect x="310" y="60" width="260" height="190" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="440" y="108" font-weight="700">Terraform core</text>
+      <text x="440" y="145" font-size="17" fill="#5C6B7B">reads code and state</text>
+      <text x="440" y="172" font-size="17" fill="#5C6B7B">builds the graph</text>
+      <text x="440" y="199" font-size="17" fill="#5C6B7B">makes the plan</text>
+      <rect x="650" y="60" width="230" height="190" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="765" y="108" font-weight="700">Provider plugins</text>
+      <text x="765" y="145" font-size="17" fill="#5C6B7B">kubernetes</text>
+      <text x="765" y="172" font-size="17" fill="#5C6B7B">aws</text>
+      <text x="765" y="199" font-size="17" fill="#5C6B7B">helm, github, …</text>
+      <rect x="960" y="30" width="176" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1048" y="70">Kubernetes</text><text x="1048" y="96">API server</text>
+      <rect x="960" y="190" width="176" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1048" y="242">AWS APIs</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none">
+      <line x1="222" y1="78" x2="306" y2="118" marker-end="url(#arr-d2-arch)"/>
+      <line x1="226" y1="232" x2="306" y2="192" marker-start="url(#arr-d2-arch)" marker-end="url(#arr-d2-arch)"/>
+      <line x1="572" y1="155" x2="646" y2="155" marker-start="url(#arr-d2-arch)" marker-end="url(#arr-d2-arch)"/>
+      <line x1="882" y1="118" x2="956" y2="80" marker-end="url(#arr-d2-arch)"/>
+      <line x1="882" y1="192" x2="956" y2="230" marker-end="url(#arr-d2-arch)"/>
+    </g>
+    <text x="609" y="142" font-size="15" fill="#5C6B7B" text-anchor="middle">gRPC</text>
+  </svg>
+  <p>Terraform core has no knowledge of Kubernetes or AWS. Providers are separate programs that turn resources into API calls. <code>terraform init</code> downloads them from the Terraform Registry.</p>
+  <aside class="notes">
+    Terraform is split into two parts. The core is the terraform binary. It parses the configuration, reads the state, builds
+    the dependency graph and calculates the plan. Everything that talks to a real system is in a provider plugin, a separate
+    executable that the core starts and talks to over gRPC. There are thousands of providers: AWS, Kubernetes, GitHub, Datadog,
+    and Harness itself. This split is why Terraform can manage almost anything with an API, and it is why provider versions
+    matter as much as the Terraform version. In Lab 04 you use the hashicorp/kubernetes provider, which talks to the k3d
+    cluster's API server with the credentials in your kubeconfig. Source: HashiCorp, "How Terraform works with plugins",
+    developer.hashicorp.com/terraform.
+  </aside>
+</section>
+
+<section>
+  <h2>The Terraform language</h2>
+  <div class="cols-60-40">
+<pre><code>variable "environments" {
+  type    = set(string)
+  default = ["dev", "prod"]
+}
+
+resource "kubernetes_namespace_v1" "env" {
+  for_each = var.environments
+  metadata {
+    name = "flightops-${each.key}"
+  }
+}
+
+output "namespaces" {
+  value = keys(kubernetes_namespace_v1.env)
+}</code></pre>
+    <ul>
+      <li><code>variable</code> is an input value.</li>
+      <li><code>resource</code> is an object Terraform manages. Its address is the type and the name.</li>
+      <li><code>for_each</code> makes one instance per item, such as <code>kubernetes_namespace_v1.env["dev"]</code>.</li>
+      <li><code>output</code> prints a value after apply and lets other code read it.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    Terraform code is written in HCL, the HashiCorp Configuration Language. Everything is a block with a type, labels and a
+    body. Walk through the example from top to bottom. The variable has a type and a default, so it can be changed without
+    editing the code, for example with -var or a .tfvars file. The resource block declares a Kubernetes namespace. Because
+    of for_each, this one block creates two namespaces, flightops-dev and flightops-prod, with the addresses
+    kubernetes_namespace_v1.env["dev"] and kubernetes_namespace_v1.env["prod"]. The ${each.key} syntax is string
+    interpolation. The output block prints values at the end of apply. Note that the file says nothing about order.
+    Terraform works out the order from the references. Lab 04 starts with code very close to this.
+  </aside>
+</section>
+
+<section>
+  <h2>Provider versions and the lock file</h2>
+  <div class="cols-60-40">
+<pre><code>terraform {
+  required_version = "&gt;= 1.17"
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~&gt; 3.4"
+    }
+  }
+}</code></pre>
+    <ul>
+      <li><code>source</code> names the provider in the Terraform Registry.</li>
+      <li><code>~&gt; 3.4</code> accepts version 3.4 or any later 3.x release. It rejects 4.0.</li>
+      <li><code>terraform init</code> records the selected version and its checksums in <code>.terraform.lock.hcl</code>. Commit that file.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    A provider upgrade can change behaviour, so teams pin versions. The required_providers block states which providers the
+    code needs and which versions are acceptable. The pessimistic operator ~> allows the rightmost version part to grow: ~> 3.4
+    means at least 3.4 and less than 4.0. Major versions often contain breaking changes; for example, version 3 of the
+    Kubernetes provider deprecated the resource names without the _v1 suffix. The lock file, introduced in Terraform 0.14,
+    records the version chosen and the checksums of the provider packages. When the file is committed, every laptop
+    and every pipeline run installs the same provider, and a tampered download fails the checksum check. To upgrade, run
+    terraform init -upgrade and review the lock file change in a pull request like any other change.
+  </aside>
+</section>
+
+<section>
+  <h2>Why Terraform keeps state</h2>
+  <ul>
+    <li>State maps each resource address to a real object. <code>kubernetes_namespace_v1.env["dev"]</code> maps to the namespace <code>flightops-dev</code>.</li>
+    <li>State records dependencies, so Terraform can delete objects in the right order after you remove them from the code.</li>
+    <li>State stores the last known attribute values, which plans compare against.</li>
+    <li>By default, state is a JSON file named <code>terraform.tfstate</code> in the working folder.</li>
+  </ul>
+  <p>If the state is lost, Terraform no longer knows which objects it created.</p>
+  <aside class="notes">
+    Students often ask why Terraform needs a state file when it could look at the cloud. The main reason is mapping.
+    Many APIs cannot tell Terraform which real object belongs to which block of code. The state records that
+    kubernetes_namespace_v1.env["dev"] is the namespace called flightops-dev, or that an aws_instance block is instance
+    i-0abc123. The state also remembers dependencies for objects that are no longer in the code, which is how Terraform
+    deletes them in a safe order. In Lab 04 you will look at the state with terraform state list and terraform state show.
+    If state is lost, Terraform would try to create everything again and fail on name conflicts; objects can be brought back
+    under management with terraform import. Source: HashiCorp, "Purpose of Terraform State".
+  </aside>
+</section>
+
+<section>
+  <h2>Plan and apply</h2>
+  <svg class="diagram" viewBox="0 0 1136 260" role="img" aria-label="Code, state and real infrastructure go into terraform plan, which produces proposed changes, which terraform apply performs">
+    <defs><marker id="arr-d2-plan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="10" width="220" height="60" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="46">Code</text>
+      <rect x="0" y="100" width="220" height="60" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="136">State</text>
+      <rect x="0" y="190" width="220" height="60" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="226">Real infrastructure</text>
+      <rect x="300" y="95" width="180" height="70" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="390" y="136">terraform plan</text>
+      <rect x="560" y="25" width="240" height="210" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="680" y="62" font-weight="700">Proposed changes</text>
+      <rect x="880" y="95" width="200" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="980" y="136">terraform apply</text>
+    </g>
+    <g font-size="17" fill="#14263D" font-family="Menlo, 'DejaVu Sans Mono', monospace">
+      <text x="590" y="102">+   create</text>
+      <text x="590" y="134">~   update in place</text>
+      <text x="590" y="166">-   destroy</text>
+      <text x="590" y="198">-/+ replace</text>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="980" y="196">changes the infrastructure,</text>
+      <text x="980" y="218">then writes the new state</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-plan)">
+      <line x1="222" y1="40" x2="296" y2="112"/>
+      <line x1="222" y1="130" x2="296" y2="130"/>
+      <line x1="222" y1="220" x2="296" y2="148"/>
+      <line x1="482" y1="130" x2="556" y2="130"/>
+      <line x1="802" y1="130" x2="876" y2="130"/>
+    </g>
+  </svg>
+  <p>Nothing changes until apply runs. <code>terraform plan -out=tfplan</code> saves a plan, and <code>terraform apply tfplan</code> applies that saved plan without recalculating it.</p>
+  <aside class="notes">
+    Plan is the most important Terraform command for teams. It reads three inputs: the code, the state, and the real objects,
+    which it refreshes from the APIs. From these it calculates a list of proposed actions, shown with symbols. A plus sign
+    creates, a tilde updates in place, a minus destroys, and minus-slash-plus replaces: destroy first, then create. Replacement
+    happens when an attribute cannot be changed in place, such as the name of a namespace. Apply without a saved plan
+    calculates a new plan and asks for confirmation. In a pipeline you usually save the plan to a file, review it, and apply
+    that same file. Ask the class: why might the plan in a pull request differ from what apply does later? We come back to
+    this in the next lecture.
+  </aside>
+</section>
+
+<section>
+  <h2>Modules</h2>
+  <div class="cols-60-40">
+<pre><code>module "postgres" {
+  source   = "./modules/postgres"
+  for_each = var.environments
+
+  namespace = kubernetes_namespace_v1.env[each.key].metadata[0].name
+}
+
+# modules/postgres/variables.tf
+variable "namespace" {
+  type = string
+}</code></pre>
+    <ul>
+      <li>A module is a folder of <code>.tf</code> files with input variables and outputs.</li>
+      <li>The root module calls child modules and passes values to them.</li>
+      <li>With <code>for_each</code>, one module builds the same database in dev and in prod.</li>
+      <li>Modules can come from a local folder, a Git repository or a registry.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    Modules are how Terraform code is reused. Every folder of .tf files is a module; the folder where you run Terraform is the
+    root module. A child module declares variables for its inputs and outputs for its results, much like a function with
+    parameters and return values. In Lab 04 the postgres module contains the password, the Secret, the volume claim, the
+    Deployment and the Service of one database. The root module calls it once per environment with for_each, passing the
+    namespace. This is how teams keep dev and prod consistent: they differ only in the values passed in, never in copied code. Shared modules are often published in a private registry with
+    versions, so each team can upgrade on its own schedule. Lab 04 builds this module step by step.
+  </aside>
+</section>
+
+<section>
+  <h2>AWS CloudFormation</h2>
+  <div class="cols-60-40">
+    <ul>
+      <li>You describe AWS resources in a JSON or YAML template.</li>
+      <li>CloudFormation creates them as a stack and keeps the state inside AWS.</li>
+      <li>A change set previews an update before you run it.</li>
+      <li>If an update fails, CloudFormation rolls the stack back.</li>
+      <li>Drift detection compares a stack with the real resources.</li>
+    </ul>
+<pre><code>Resources:
+  FlightDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled</code></pre>
+  </div>
+  <aside class="notes">
+    CloudFormation is AWS's own infrastructure as code service, launched in 2011. The ideas match Terraform: a declarative
+    template, a preview, and an apply. The differences are in where things are kept. CloudFormation stores the state of a stack
+    inside AWS, so there is no state file to protect or lock. Change sets play the role of terraform plan. A failed update rolls
+    back automatically to the last working configuration, which Terraform does not do; a failed terraform apply stops and
+    leaves the completed changes in place. CloudFormation only manages AWS resources, plus extensions published in its
+    registry. The template on the slide creates a versioned S3 bucket. Few people write large templates by hand today, which
+    leads to the CDK. Source: AWS CloudFormation User Guide.
+  </aside>
+</section>
+
+<section>
+  <h2>The AWS Cloud Development Kit</h2>
+  <svg class="diagram" viewBox="0 0 1136 270" role="img" aria-label="A CDK app uses a shared construct library; cdk synth produces a CloudFormation template; cdk deploy creates a CloudFormation stack, which creates AWS resources">
+    <defs><marker id="arr-d2-cdk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="10" width="190" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="95" y="45">Shared construct</text><text x="95" y="70">library</text>
+      <rect x="0" y="160" width="190" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="95" y="198">CDK app</text><text x="95" y="224" font-size="16" fill="#5C6B7B">TypeScript or Python</text>
+      <rect x="300" y="160" width="190" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="395" y="198">CloudFormation</text><text x="395" y="224">template</text>
+      <rect x="600" y="160" width="190" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="695" y="198">CloudFormation</text><text x="695" y="224">stack</text>
+      <rect x="910" y="160" width="190" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1005" y="211">AWS resources</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-cdk)">
+      <line x1="95" y1="92" x2="95" y2="156"/>
+      <line x1="192" y1="205" x2="296" y2="205"/>
+      <line x1="492" y1="205" x2="596" y2="205"/>
+      <line x1="792" y1="205" x2="906" y2="205"/>
+    </g>
+    <g font-size="15" fill="#5C6B7B" text-anchor="middle" font-family="Menlo, 'DejaVu Sans Mono', monospace">
+      <text x="245" y="192">cdk synth</text>
+      <text x="545" y="192">cdk deploy</text>
+    </g>
+    <text x="850" y="192" font-size="15" fill="#5C6B7B" text-anchor="middle">creates</text>
+  </svg>
+  <p>CDK code produces a CloudFormation template, and CloudFormation creates the resources. Constructs are reusable classes that bundle resources with defaults. At United, teams use a shared CDK library. A library like this packages approved resource settings as constructs.</p>
+  <aside class="notes">
+    The AWS Cloud Development Kit, generally available since 2019, lets you define infrastructure in a programming language:
+    TypeScript, JavaScript, Python, Java, C# or Go. The program does not call AWS. It builds a tree of constructs, and cdk synth
+    turns that tree into a CloudFormation template. cdk deploy then hands the template to CloudFormation, so state, change sets
+    and rollback all come from CloudFormation. Constructs come in levels: L1 constructs map one-to-one to CloudFormation
+    resources, L2 constructs add sensible defaults, and L3 constructs, or patterns, combine several resources. A shared
+    construct library, like the one used at United, lets a platform team publish constructs with the approved settings for
+    encryption, logging and tagging already applied. cdk diff compares the synthesised template with the deployed stack.
+    Source: AWS CDK Developer Guide.
+  </aside>
+</section>
+
+<section>
+  <h2>Terraform, CloudFormation and the CDK compared</h2>
+  <table style="width: 100%;">
+    <colgroup><col style="width: 13%;"><col style="width: 33%;"><col style="width: 27%;"><col style="width: 27%;"></colgroup>
+    <tr><th></th><th>Terraform</th><th>CloudFormation</th><th>AWS CDK</th></tr>
+    <tr><td>Language</td><td>HCL</td><td>JSON or YAML</td><td>TypeScript, Python, Java, C#, Go</td></tr>
+    <tr><td>State</td><td>A state file in a backend you choose</td><td>Kept by AWS in the stack</td><td>Kept by AWS, through CloudFormation</td></tr>
+    <tr><td>Preview</td><td><code>terraform plan</code></td><td>Change set</td><td><code>cdk diff</code></td></tr>
+    <tr><td>Targets</td><td>Any API with a provider, such as AWS, Kubernetes or GitHub</td><td>AWS</td><td>AWS</td></tr>
+    <tr><td>Reuse</td><td>Modules</td><td>Nested stacks and modules</td><td>Constructs</td></tr>
+  </table>
+  <p>Declared state, previews, review in pull requests and automated apply work the same way in all three.</p>
+  <aside class="notes">
+    Use this table as a reference. Terraform's strength is breadth: one language for AWS, Kubernetes,
+    GitHub, monitoring tools and Harness itself, at the cost of managing state. CloudFormation needs no state management and
+    rolls back on failure, but it is limited to AWS and its templates are verbose. The CDK adds programming language features
+    such as loops, classes, types and unit tests on top of CloudFormation. Many organisations use more than one: for example
+    CDK for AWS accounts and Terraform for Kubernetes or SaaS configuration. The lab uses Terraform because it can manage the
+    local Kubernetes cluster without an AWS account. Everything you practise today, from plans to review to pipelines, applies
+    to the CDK workflow at United as well.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 04: Terraform foundations on Kubernetes</h2>
+  <p>120 minutes. Open <code>labs/04-terraform-foundations.md</code> in the course repository.</p>
+  <ul>
+    <li>Install k3d, kubectl and Terraform, and create the local Kubernetes cluster.</li>
+    <li>Write Terraform for dev and prod namespaces with quotas and default limits.</li>
+    <li>Run plan and apply, make a manual change, and find the drift.</li>
+    <li>Add a Postgres database per environment with a module, and push the code to Harness.</li>
+  </ul>
+  <aside class="notes">
+    This is the longest lab of the course. The first 20 to 30 minutes install tools and create the cluster; read the
+    explanation of each install step, because the same tools come back on Day 3. The Kubernetes cluster stands in for Amazon
+    EKS. You do not need to know Kubernetes in depth yet; the lab explains each object you create, and Day 3 covers
+    Kubernetes properly. If you finish early, try the "Going further" tasks. Anyone who did not finish Lab 03 can run
+    scripts/catch-up.sh 04 first. We meet again after lunch at 13:05.
+  </aside>
+</section>
+
+<!-- ===================== L7: Infrastructure as code in pipelines ===================== -->
+
+<section>
+  <h2>Why apply infrastructure code from a pipeline</h2>
+  <p>When engineers apply from their laptops:</p>
+  <ul>
+    <li>Each laptop can have a different Terraform or provider version.</li>
+    <li>State files are kept on laptops, or two people apply at the same time.</li>
+    <li>Cloud credentials are copied to many machines.</li>
+    <li>Nobody reviews the change, and there is no record of who applied it.</li>
+  </ul>
+  <p>A pipeline runs one pinned version, uses one remote state, holds the credentials in one place, and applies only after review.</p>
+  <aside class="notes">
+    In Lab 04 you ran Terraform from your terminal, which is normal while learning and for personal sandboxes. In a team it
+    causes the problems on this slide. Version differences produce different plans for the same code. Local state cannot be
+    shared, and two people applying at once can corrupt it. Every laptop that can apply also holds powerful cloud
+    credentials, which means more places where they can be stolen. And an apply from a laptop leaves no review and no audit trail beyond
+    whatever the cloud logs. Moving apply into a pipeline fixes all four. The pipeline image pins the Terraform version, the
+    backend holds the state, the pipeline platform holds the credentials, and the branch rule forces review. This is also the
+    model Harness uses at United for deployments.
+  </aside>
+</section>
+
+<section>
+  <h2>Remote state and locking</h2>
+  <svg class="diagram" viewBox="0 0 1136 290" role="img" aria-label="Pipeline run A holds the lock in the backend; pipeline run B gets an error acquiring the state lock">
+    <defs><marker id="arr-d2-lock" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="20" width="250" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="125" y="55">Pipeline run A</text><text x="125" y="80" font-size="16" fill="#5C6B7B">running apply</text>
+      <rect x="0" y="190" width="250" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="125" y="225">Pipeline run B</text><text x="125" y="250" font-size="16" fill="#5C6B7B">starts while A runs</text>
+      <rect x="620" y="10" width="440" height="270" rx="6" fill="#fff" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="840" y="48" font-weight="700">Backend</text>
+      <rect x="650" y="80" width="180" height="120" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="740" y="132">State</text><text x="740" y="158" font-size="16" fill="#5C6B7B">a Secret in Lab 05</text>
+      <rect x="860" y="80" width="170" height="120" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="945" y="132">Lock</text><text x="945" y="158" font-size="16" fill="#5C6B7B">a Lease in Lab 05</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-lock)">
+      <line x1="252" y1="60" x2="616" y2="110"/>
+      <line x1="252" y1="230" x2="616" y2="200" stroke-dasharray="7 5"/>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="430" y="70">holds the lock</text>
+      <text x="430" y="248">Error acquiring the state lock</text>
+    </g>
+  </svg>
+  <p>A backend stores state outside the working folder, for example in Amazon S3, HCP Terraform or a Kubernetes Secret. Locking stops two runs from changing the same state at once.</p>
+  <aside class="notes">
+    A backend decides where Terraform keeps state. The default local backend writes terraform.tfstate next to the code, which
+    only works for one person. Remote backends keep state in shared storage. Amazon S3 is the most common choice on AWS. HCP
+    Terraform is HashiCorp's hosted service. Lab 05 uses the kubernetes backend, which stores the state in a Secret in the
+    cluster and uses a Lease object as the lock. Locking matters because state is read at the start of a run and written at
+    the end. Without a lock, two runs could both read the old state and the second write would lose the first run's changes.
+    With a lock, the second run fails with "Error acquiring the state lock" and the message names who holds it.
+    terraform force-unlock exists for stuck locks, but use it only when you are sure no run is active.
+  </aside>
+</section>
+
+<section>
+  <h2>Plan on pull request, apply on merge</h2>
+  <svg class="diagram" viewBox="0 0 1136 210" role="img" aria-label="Change on a feature branch, open a pull request, pipeline runs fmt validate plan, review the code and the plan, merge to main and the pipeline applies">
+    <defs><marker id="arr-d2-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="40" width="196" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="98" y="80">Change on a</text><text x="98" y="105">feature branch</text>
+      <rect x="235" y="40" width="196" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="333" y="80">Open a</text><text x="333" y="105">pull request</text>
+      <rect x="470" y="40" width="196" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="568" y="80">Pipeline: fmt,</text><text x="568" y="105">validate, plan</text>
+      <rect x="705" y="40" width="196" height="90" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="803" y="80">Review the code</text><text x="803" y="105">and the plan</text>
+      <rect x="940" y="40" width="196" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1038" y="80">Merge to main,</text><text x="1038" y="105">pipeline: apply</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-flow)">
+      <line x1="197" y1="85" x2="231" y2="85"/>
+      <line x1="432" y1="85" x2="466" y2="85"/>
+      <line x1="667" y1="85" x2="701" y2="85"/>
+      <line x1="902" y1="85" x2="936" y2="85"/>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="568" y="160">runs on every push</text><text x="568" y="182">to the pull request</text>
+      <text x="1038" y="160">runs only</text><text x="1038" y="182">on main</text>
+    </g>
+  </svg>
+  <p>The branch rule from Lab 03 also protects <code>main</code> in the infrastructure repository. Reviewers approve the code change and its plan output together.</p>
+  <aside class="notes">
+    This is the standard workflow for infrastructure as code in a team, and it is what you build in Lab 05. Every push to a
+    pull request runs terraform fmt -check, terraform validate and terraform plan, and the plan output appears in the pipeline
+    logs for reviewers. The reviewer reads both the code diff and the plan, because the plan shows the real effect of the code
+    change. After merge, a pipeline on main runs apply. Only main can apply, and main can only change through a reviewed pull
+    request, so every change to the infrastructure has a reviewer and a record. Tools such as Atlantis and HCP Terraform
+    automate this pattern. The Harness platform supports it with Terraform steps and its Infrastructure as Code Management
+    module. Source: HashiCorp, "Terraform recommended practices".
+  </aside>
+</section>
+
+<section>
+  <h2>Reviewing a plan</h2>
+  <ul>
+    <li>Read the summary first, for example "Plan: 1 to add, 2 to change, 0 to destroy."</li>
+    <li>Look for destroy (<code>-</code>) and replace (<code>-/+</code>) actions. Replacing a database resource can delete its data.</li>
+    <li>Check that the plan changes only the resources the pull request meant to change.</li>
+    <li>A saved plan is valid only for the state it was made from. If the state changes first, Terraform rejects the plan as stale.</li>
+  </ul>
+  <aside class="notes">
+    Reviewing a plan is a skill. Start with the summary line. If a pull request that changes a quota shows "1 to destroy",
+    stop and find out why. Destroy and replace actions deserve the most attention, because a replaced database, volume or
+    load balancer can lose data or change its address. Unexpected changes to unrelated resources usually mean drift or a
+    provider upgrade. The last point answers the question from the morning. The plan in a pull request was calculated against
+    the state at that time. If another change is applied before this one merges, the plan is out of date. Terraform protects
+    against this for saved plans: applying a plan file after the state has changed fails with "Saved plan is stale". This is
+    why the apply on main calculates a new plan or uses a plan saved in the same run.
+  </aside>
+</section>
+
+<section>
+  <h2>State is sensitive data</h2>
+  <ul>
+    <li>State stores every attribute of every resource in plain text, including generated passwords and tokens.</li>
+    <li><code>sensitive = true</code> hides a value in plan output. The value is still written to state.</li>
+    <li>Anyone who can read the state can read those values.</li>
+    <li>Protect the backend with encryption at rest, and give access only to the pipeline and a few administrators.</li>
+  </ul>
+  <p>In Lab 05 the state is stored in a Kubernetes Secret. In Lab 06 you find a database password in it.</p>
+  <aside class="notes">
+    HashiCorp's documentation says to treat state itself as sensitive data. If Terraform generates a database password, or
+    reads a token from a data source, that value is in the state file in plain text. Marking a variable or output as
+    sensitive only hides it from the terminal output. The state still contains it. So the backend needs the same protection as
+    a secret store: encryption at rest, tight access control and access logging. On AWS that means an encrypted S3 bucket
+    with a restrictive bucket policy. Newer Terraform versions add ephemeral values and write-only arguments, which keep some
+    secrets out of state; they need provider support. Lab 06 makes this concrete. You will read the Postgres password from the
+    state Secret. Source: HashiCorp, "Sensitive data in state".
+  </aside>
+</section>
+
+<section>
+  <h2>Policy as code</h2>
+  <p>A policy is a rule written as code and checked automatically. This Open Policy Agent rule, written in Rego, rejects a plan that deletes a namespace.</p>
+<pre><code>package terraform.namespaces
+
+deny contains msg if {
+  some rc in input.resource_changes
+  rc.type == "kubernetes_namespace_v1"
+  "delete" in rc.change.actions
+  msg := sprintf("%s would be deleted", [rc.address])
+}</code></pre>
+  <p>The input is the plan as JSON, from <code>terraform show -json tfplan</code>. Other policy engines include HashiCorp Sentinel and AWS CloudFormation Guard. The Harness platform uses OPA policies to check pipelines and other resources.</p>
+  <aside class="notes">
+    Review by people does not scale to every rule an organisation has. Policy as code moves repeatable rules into code that a
+    machine checks on every change: no public storage buckets, every resource has an owner tag, no deletion of namespaces
+    without approval. The Open Policy Agent is a general-purpose policy engine from the Cloud Native Computing Foundation.
+    Policies are written in Rego and evaluated against JSON input. Here the input is a Terraform plan converted to JSON, and the
+    rule produces a message for each namespace the plan would delete. A pipeline step runs the check after plan and fails if
+    any deny message exists. The Harness platform has built-in policy as code based on OPA, which United's platform team can use
+    to enforce pipeline standards. Policies themselves go through pull requests. Source: openpolicyagent.org documentation.
+  </aside>
+</section>
+
+<section>
+  <h2>GitOps principles</h2>
+  <table>
+    <tr><th>Principle</th><th>Meaning</th></tr>
+    <tr><td>Declarative</td><td>The desired state of the system is described declaratively.</td></tr>
+    <tr><td>Versioned and immutable</td><td>The desired state is stored with a complete version history.</td></tr>
+    <tr><td>Pulled automatically</td><td>Software agents pull the desired state from the source.</td></tr>
+    <tr><td>Continuously reconciled</td><td>Agents compare the actual state with the desired state and correct differences.</td></tr>
+  </table>
+  <p>Lab 05 uses a push model, where the pipeline applies changes. Pull-based tools such as Argo CD and Flux run inside the cluster. Harness offers a GitOps module based on Argo CD.</p>
+  <aside class="notes">
+    GitOps applies the ideas of this lecture to continuous operation. The OpenGitOps project, part of the CNCF, published four
+    principles in version 1.0.0 in 2021, shown here. The first two you already have: declarative code in Git with history.
+    The last two differ from a pipeline. In a pull model, an agent running inside the target environment watches the
+    repository and applies changes itself, and it keeps checking, so drift is corrected within minutes. The pipeline does not
+    need credentials for the cluster, because the agent is already inside. Argo CD and Flux are the common open source agents
+    for Kubernetes. Push and pull both work. The important part is that Git is the only way changes enter the system.
+    Source: OpenGitOps (2021), GitOps Principles v1.0.0, opengitops.dev.
+  </aside>
+</section>
+
+<section>
+  <h2>Detecting drift from a pipeline</h2>
+  <ul>
+    <li>Run a plan on a schedule, for example every night.</li>
+    <li>With <code>-detailed-exitcode</code>, plan exits with 0 for no changes, 2 for changes and 1 for an error.</li>
+    <li>On exit code 2, alert the team. Decide whether to revert the change or update the code.</li>
+  </ul>
+<pre><code>rc=0
+terraform plan -detailed-exitcode -input=false || rc=$?
+if [ "$rc" -eq 2 ]; then echo "Drift found"; exit 1; fi
+exit "$rc"</code></pre>
+  <p>The <code>|| rc=$?</code> keeps the step's <code>set -e</code> shell from stopping before the check.</p>
+  <aside class="notes">
+    Drift detection turns the plan into a monitoring tool. A scheduled pipeline runs plan against production with no code
+    change. If the plan is empty, reality matches the code. If it is not, someone or something changed the infrastructure
+    outside the workflow. The -detailed-exitcode flag makes the result machine-readable. The script uses the || rc=$? form
+    because pipeline steps run with set -e, as you saw yesterday: without it, exit code 2 would end the script before the if
+    statement runs. The step then fails on purpose, which makes the run red and notifies the team. The same check is useful
+    after an incident, to list everything that was changed by hand during the fix, so those changes can be moved into code.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 05: Terraform in the pipeline</h2>
+  <p>75 minutes. Open <code>labs/05-terraform-pipeline.md</code> in the course repository.</p>
+  <ul>
+    <li>Move the Terraform state to the Kubernetes backend.</li>
+    <li>Store a cluster credential for the pipeline as a Harness secret.</li>
+    <li>Build a pipeline that runs fmt, validate and plan on pull requests, and apply on <code>main</code>.</li>
+    <li>Change an environment through a pull request and watch the apply.</li>
+  </ul>
+  <aside class="notes">
+    This lab connects the morning to Day 1. The Terraform code from Lab 04 is already in its own repository, platform.
+    The pipeline needs credentials for the cluster; for now you store a kubeconfig
+    as a Harness secret, and Lab 06 looks at that credential critically. Pay attention to where the plan output appears and how
+    you would review it. Near the end you change the cluster by hand and let the pipeline find the drift. Lab 04 must be complete before
+    you start; otherwise run scripts/catch-up.sh 05.
+  </aside>
+</section>
+
+<!-- ===================== L8: Credential management ===================== -->
+
+<section>
+  <h2>What counts as a credential</h2>
+  <p>A credential is any value that proves an identity or grants access.</p>
+  <ul>
+    <li>Passwords and database connection strings</li>
+    <li>API tokens, such as your Harness personal access token</li>
+    <li>SSH and TLS private keys</li>
+    <li>Cloud access keys, such as an AWS access key ID and secret access key</li>
+    <li>kubeconfig files and Kubernetes ServiceAccount tokens</li>
+  </ul>
+  <p>For each credential, know what it grants access to, who holds a copy, and when it expires.</p>
+  <aside class="notes">
+    This lecture uses the words credential and secret for the same thing: a value that must stay private because it grants
+    access. Go through the list and connect each item to the course. Your Harness token from Lab 01 is an API token. The
+    kubeconfig in your home folder grants full administrator access to your cluster. The Postgres password from Lab 04 is a
+    database credential. Ask the class to count how many credentials they have created since Monday morning. Most will say
+    three or four; the real number is higher once you include the admin password in the docker run command and the kubeconfig.
+    The three questions at the bottom are the basis of every credential decision in the rest of this lecture: scope, holders
+    and lifetime.
+  </aside>
+</section>
+
+<section>
+  <h2>Where secrets leak</h2>
+  <table>
+    <tr><th>Place</th><th>Example</th></tr>
+    <tr><td>Source code and Git history</td><td>A password committed and later deleted is still in the history.</td></tr>
+    <tr><td>Pipeline logs</td><td><code>echo $TOKEN</code> or <code>set -x</code> prints the value.</td></tr>
+    <tr><td>Container images</td><td>A file copied in one layer stays in the image after a later layer deletes it.</td></tr>
+    <tr><td>Infrastructure state</td><td>Terraform state stores generated passwords in plain text.</td></tr>
+    <tr><td>Shell history and process data</td><td>Passwords typed as arguments; <code>docker inspect</code> shows environment variables.</td></tr>
+    <tr><td>Chat, tickets and wikis</td><td>A value pasted to help a colleague.</td></tr>
+  </table>
+  <aside class="notes">
+    Most leaks are accidents in ordinary places. Git keeps every version of every file, so deleting a committed secret in a
+    later commit does not remove it; the credential must be rotated. Pipeline logs are read by many people and often kept for
+    months. Container images are built in layers, and each layer is stored separately, so a secret removed in a later layer
+    can still be extracted from the earlier one. Terraform state you saw this morning. Environment variables are visible to
+    anyone who can run docker inspect on the container or read /proc on the host. The last row is the most common in many
+    organisations. Lab 06 starts by finding several of these on your own lab machine. Source: OWASP Secrets Management Cheat
+    Sheet.
+  </aside>
+</section>
+
+<section>
+  <h2>The secret-zero problem</h2>
+  <svg class="diagram" viewBox="0 0 1136 210" role="img" aria-label="The pipeline step signs in to the secret store with credential A, the store returns password B, the step connects to the database with password B">
+    <defs><marker id="arr-d2-zero" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker>
+      <marker id="arr-d2-zero-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0033A0"/></marker></defs>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="60" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="100" y="106">Database</text>
+      <rect x="468" y="60" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="568" y="106">Pipeline step</text>
+      <rect x="936" y="60" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1036" y="106">Secret store</text>
+    </g>
+    <line x1="670" y1="82" x2="932" y2="82" stroke="#0033A0" stroke-width="2.5" marker-end="url(#arr-d2-zero-a)"/>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-zero)">
+      <line x1="934" y1="118" x2="672" y2="118"/>
+      <line x1="466" y1="100" x2="204" y2="100"/>
+    </g>
+    <text x="802" y="68" font-size="17" fill="#0033A0" text-anchor="middle">1. Signs in with credential A</text>
+    <text x="802" y="146" font-size="17" fill="#5C6B7B" text-anchor="middle">2. Returns password B</text>
+    <text x="334" y="86" font-size="17" fill="#5C6B7B" text-anchor="middle">3. Connects with password B</text>
+    <text x="568" y="196" font-size="18" fill="#0033A0" text-anchor="middle">Credential A is the secret zero.</text>
+  </svg>
+  <p>A pipeline needs a credential to read from a secret store. If that first credential is a static token, it can leak like any other secret. Workload identity removes it. The platform proves who the workload is, for example with an AWS IAM role for an EKS pod or a Kubernetes ServiceAccount token.</p>
+  <aside class="notes">
+    A secret store does not remove every stored credential. To read from the store, the pipeline must authenticate,
+    and that credential is the secret zero. If it is a long-lived token in an environment variable, an attacker who gets it
+    can read everything the token can read. The modern answer is workload identity. Instead of a stored secret, the platform
+    confirms the identity of the workload. Examples are AWS IAM roles for service accounts or EKS Pod Identity, Kubernetes ServiceAccount
+    tokens that the API server signs, and OIDC tokens that CI systems issue to each job, which a cloud can exchange for
+    temporary credentials. Harness delegates running in EKS can use IAM roles in this way, so no static AWS key is needed.
+    Source: OWASP Secrets Management Cheat Sheet, section on secret zero.
+  </aside>
+</section>
+
+<section>
+  <h2>Least privilege</h2>
+  <p>"Every program and every user of the system should operate using the least set of privileges necessary to complete the job" (Saltzer and Schroeder, 1975).</p>
+  <div class="cols-60-40">
+<pre><code>apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer
+  namespace: flightops-dev
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "patch", "update"]</code></pre>
+    <ul>
+      <li>Allow only the verbs the job needs.</li>
+      <li>Limit the namespace and the resource types.</li>
+      <li>Give each pipeline its own identity.</li>
+      <li>Prefer credentials that expire.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    Least privilege is one of the eight design principles in Saltzer and Schroeder's 1975 paper on protecting information, and
+    it still guides access design. A credential with fewer permissions does less damage when it leaks. The Role on the slide is
+    a Kubernetes RBAC rule that allows reading and updating Deployments in one namespace, and nothing else. A pipeline that
+    only rolls out new images needs no more than this. It cannot read Secrets, create namespaces or touch production. Compare
+    that with the kubeconfig you used in Lab 04 and Lab 05, which is a cluster administrator. In Lab 06 you create a deploy
+    ServiceAccount for the application and test what it can and cannot do with kubectl auth can-i. Source: Saltzer, J. H.,
+    and Schroeder, M. D. (1975), The protection of information in computer systems, Proceedings of the IEEE 63(9).
+  </aside>
+</section>
+
+<section>
+  <h2>Rotation and revocation</h2>
+  <svg class="diagram" viewBox="0 0 1136 240" role="img" aria-label="Timeline: the old token is valid until it is revoked; the new token is created, consumers are updated and verified, then the old token is revoked">
+    <defs><marker id="arr-d2-rot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="0" y="30" width="880" height="50" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <rect x="330" y="100" width="770" height="50" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g stroke="#9AA3A9" stroke-width="1.5" stroke-dasharray="5 5">
+      <line x1="330" y1="20" x2="330" y2="190"/>
+      <line x1="520" y1="20" x2="520" y2="190"/>
+      <line x1="700" y1="20" x2="700" y2="190"/>
+      <line x1="880" y1="20" x2="880" y2="190"/>
+    </g>
+    <line x1="0" y1="190" x2="1110" y2="190" stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-d2-rot)"/>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <text x="165" y="62">Old token valid</text>
+      <text x="990" y="132">New token valid</text>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="330" y="218">Create new token</text>
+      <text x="520" y="218">Update consumers</text>
+      <text x="700" y="218">Verify</text>
+      <text x="880" y="218">Revoke old token</text>
+      <text x="1110" y="178" text-anchor="end">time</text>
+    </g>
+  </svg>
+  <p>Rotation replaces a credential with a new value. Revocation makes the old value stop working. Rotate on a schedule, and at once after a suspected leak. Update every consumer before you revoke the old value.</p>
+  <aside class="notes">
+    Rotation limits how long a leaked credential is useful. The timeline shows a rotation without downtime. First create the
+    new credential while the old one still works. Then update every consumer: pipeline secrets, application configuration,
+    other teams' scripts. Verify that each consumer uses the new value, for example by running the pipeline. Only then revoke
+    the old value. If you revoke first, everything that still uses the old value breaks. If you never revoke, the rotation
+    achieved nothing. Two practical points. Rotation is only possible if you know every consumer, which is another reason to
+    keep one credential per use. And a rotation you have never practised will be slow during an incident. In Lab 06 you rotate
+    the deploy token and see the old one stop working.
+  </aside>
+</section>
+
+<section>
+  <h2>Short-lived and dynamic credentials</h2>
+  <table>
+    <tr><th>Mechanism</th><th>Lifetime</th><th>Example</th></tr>
+    <tr><td>Kubernetes bound ServiceAccount token</td><td>Chosen per request, for example one hour</td><td><code>kubectl create token deployer --duration=1h</code></td></tr>
+    <tr><td>AWS STS temporary credentials</td><td>15 minutes to 12 hours</td><td>An IAM role assumed by a pipeline or a pod</td></tr>
+    <tr><td>Vault dynamic database credentials</td><td>A lease, for example one hour</td><td>A new database user per request, removed when the lease ends</td></tr>
+  </table>
+  <p>A leaked short-lived credential stops working on its own. A long-lived credential works until someone revokes it.</p>
+  <aside class="notes">
+    Short-lived credentials rotate automatically. They are issued on demand and expire after
+    minutes or hours. Since Kubernetes 1.24, ServiceAccount tokens are normally requested through the TokenRequest API with an
+    expiry, and kubectl create token does this from the command line. AWS STS returns temporary access keys when a pipeline
+    or pod assumes an IAM role; the session lasts between 15 minutes and the role's maximum, up to 12 hours. HashiCorp Vault
+    goes further with dynamic secrets: it creates a new database user for each request and deletes it when the lease ends.
+    The trade-off is that the issuing system must be available whenever a credential is needed. The Harness platform can
+    use these mechanisms through its connectors and secret managers. Sources: Kubernetes documentation on service account
+    tokens; AWS IAM User Guide, temporary security credentials.
+  </aside>
+</section>
+
+<section>
+  <h2>Encryption at rest and envelope encryption</h2>
+  <svg class="diagram" viewBox="0 0 1136 285" role="img" aria-label="A data key encrypts the secret value; a KMS key, which never leaves the KMS, encrypts the data key; the encrypted value and encrypted data key are stored together">
+    <defs><marker id="arr-d2-env" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="615" y="12" width="270" height="258" rx="8" fill="none" stroke="#9AA3A9" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <g font-size="19" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="30" width="210" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="105" y="71">Secret value</text>
+      <rect x="630" y="30" width="240" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="750" y="71">Encrypted value</text>
+      <rect x="0" y="180" width="210" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="105" y="221">Data key</text>
+      <rect x="300" y="165" width="240" height="100" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="420" y="205">KMS key</text>
+      <text x="420" y="232" font-size="16" fill="#5C6B7B">never leaves the KMS</text>
+      <rect x="630" y="180" width="240" height="70" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="750" y="221">Encrypted data key</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-env)">
+      <line x1="212" y1="65" x2="626" y2="65"/>
+      <line x1="212" y1="215" x2="296" y2="215"/>
+      <line x1="542" y1="215" x2="626" y2="215"/>
+    </g>
+    <text x="418" y="52" font-size="16" fill="#5C6B7B" text-anchor="middle">encrypted with the data key</text>
+    <g font-size="17" fill="#5C6B7B">
+      <text x="905" y="130">Stored together,</text><text x="905" y="154">for example in etcd</text><text x="905" y="178">or a database</text>
+    </g>
+  </svg>
+  <p>A data key encrypts the value. A key in a key management service (KMS), such as AWS KMS, encrypts the data key. The KMS key never leaves the KMS, and rotating it does not require re-encrypting the stored data.</p>
+  <aside class="notes">
+    Encryption at rest protects stored data if someone copies the disk, a backup or the database files. Most systems use
+    envelope encryption. Each value, or each batch of values, is encrypted with a data key. The data key is then encrypted with
+    a key-encryption key held in a key management service such as AWS KMS or a hardware security module. Only the encrypted
+    data key is stored next to the data. To read the value, the system asks the KMS to decrypt the data key, which the KMS
+    allows only for authorised callers and logs every time. The KMS key itself never leaves the service. This is how Amazon
+    EKS encrypts Kubernetes Secrets with KMS. Harness Open Source encrypts stored secrets only when it is started with an
+    encryption key setting, GITNESS_ENCRYPTER_SECRET. In version 3.3.0, pipelines cannot read secrets stored with that
+    setting, so the labs run without it and the secrets are stored unencrypted. Lab 06 shows a stored kubeconfig in the
+    database file. The Harness platform's built-in secret manager encrypts secrets with a key management service.
+  </aside>
+</section>
+
+<section>
+  <h2>Kubernetes Secrets</h2>
+<pre><code>$ kubectl get secret db -n flightops-dev -o jsonpath='{.data.password}'
+UzNjcjN0LVZhbHVl
+$ echo UzNjcjN0LVZhbHVl | base64 -d
+S3cr3t-Value</code></pre>
+  <ul>
+    <li>The API server stores Secrets in etcd, base64-encoded. Anyone can decode base64.</li>
+    <li>Encryption at rest is a separate API server setting. Amazon EKS can encrypt Secrets with a key in AWS KMS.</li>
+    <li>Anyone allowed to read Secrets in a namespace, or to create Pods there, can read the values.</li>
+  </ul>
+  <aside class="notes">
+    New Kubernetes users often assume Secrets are encrypted because of the name. The values are base64-encoded, which exists to
+    store binary data in JSON and YAML; it offers no protection. The example on the slide decodes a password in two commands,
+    and you will do the same in Lab 06. By default, etcd stores Secrets unencrypted. Encryption at rest is configured on the API
+    server with an EncryptionConfiguration, ideally with a KMS provider. Access control matters even more. The Kubernetes
+    documentation notes that anyone who can create a Pod in a namespace can mount any Secret in that namespace and read it.
+    So RBAC on Secrets and on Pod creation is part of secret management. Many teams sync values from an external store
+    into Secrets at deploy time. Source: Kubernetes documentation, "Secrets" and "Encrypting confidential data at rest".
+  </aside>
+</section>
+
+<section>
+  <h2>Secret stores and pipelines</h2>
+  <svg class="diagram" viewBox="0 0 1136 275" role="img" aria-label="Pipeline YAML holds a reference; Harness reads the value from the secret store when the step starts and passes it to the step as an environment variable, which connects to the database or API">
+    <defs><marker id="arr-d2-store" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="300" y="0" width="560" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <g font-size="16">
+      <text x="322" y="31" fill="#5C6B7B">Open Source</text>
+      <text x="462" y="31" fill="#14263D" font-family="Menlo, 'DejaVu Sans Mono', monospace">${{ secrets.get("db_password") }}</text>
+      <text x="322" y="60" fill="#5C6B7B">Platform</text>
+      <text x="462" y="60" fill="#14263D" font-family="Menlo, 'DejaVu Sans Mono', monospace">&lt;+secrets.getValue("db_password")&gt;</text>
+    </g>
+    <g font-size="18" fill="#14263D" text-anchor="middle">
+      <rect x="0" y="150" width="230" height="100" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="115" y="184">Secret store</text>
+      <text x="115" y="210" font-size="16" fill="#5C6B7B">TSS, AWS Secrets</text>
+      <text x="115" y="232" font-size="16" fill="#5C6B7B">Manager, Vault</text>
+      <rect x="320" y="150" width="220" height="100" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="430" y="184">Harness reads</text><text x="430" y="208">the value when</text><text x="430" y="232">the step starts</text>
+      <rect x="630" y="150" width="230" height="100" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="745" y="194">Step: value in an</text><text x="745" y="219">environment variable</text>
+      <rect x="950" y="150" width="186" height="100" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1043" y="194">Database</text><text x="1043" y="219">or API</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-d2-store)">
+      <line x1="430" y1="78" x2="430" y2="146"/>
+      <line x1="232" y1="200" x2="316" y2="200"/>
+      <line x1="542" y1="200" x2="626" y2="200"/>
+      <line x1="862" y1="200" x2="946" y2="200"/>
+    </g>
+  </svg>
+  <p>The pipeline YAML holds a reference to the secret. At United, the enterprise store is TSS. The Harness platform reads external stores through secret manager connectors. Harness Open Source keeps secrets in its own database.</p>
+  <aside class="notes">
+    An enterprise secret store holds the authoritative copy of each credential. It stores credentials encrypted, controls who
+    can read each one, logs every access, and often rotates them. At United that store is TSS. AWS Secrets Manager and HashiCorp Vault are
+    other common examples. A pipeline should never contain a secret value. It contains a reference, and the pipeline platform
+    resolves the reference when the step starts, then passes the value to the step, usually as an environment variable.
+    The two lines at the top show the reference syntax in Harness Open Source, which you use in the labs, and in the Harness
+    platform. In the platform, a secret manager is configured as a connector, and the delegate fetches values inside the
+    company network. Harness Open Source has only its built-in store. The value still exists inside the step, which is why the
+    next slide matters.
+  </aside>
+</section>
+
+<section>
+  <h2>Secret scanning and log masking</h2>
+  <div class="cols">
+    <div>
+      <h3>Secret scanning</h3>
+      <ul>
+        <li>Looks for secret patterns, such as AWS access keys, in commits.</li>
+        <li>A pre-commit hook, such as gitleaks, blocks the commit on a laptop.</li>
+        <li>Harness Open Source can reject a push and name the file and line.</li>
+        <li>Custom secret formats can pass, because scanning relies on patterns.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Log masking</h3>
+      <ul>
+        <li>Replaces known secret values with asterisks in logs.</li>
+        <li>The Harness platform masks secrets. Harness Open Source 3.3.0 does not.</li>
+        <li>A changed value, such as base64 or part of a string, is not masked.</li>
+      </ul>
+    </div>
+  </div>
+  <p>Do not print secrets in logs. Scanning and masking only catch some mistakes.</p>
+  <aside class="notes">
+    These two controls catch accidents. Secret scanning looks for known patterns, such as the fixed prefix of an AWS access
+    key, in commits. On a laptop it runs as a pre-commit hook; on the server it runs as push protection. You saw on Day 1 that
+    Harness Open Source can reject a push that contains an AWS key and report the file and line. Patterns miss secrets with no
+    recognisable format, such as a random database password. Log masking replaces the known value of each secret with
+    asterisks before the log is stored. The Harness platform does this. Harness Open Source 3.3.0 does not, and in Lab 06 you
+    will see a secret printed in clear text in a pipeline log. Masking also misses any transformed value. So pipeline authors
+    follow one rule. Never echo a secret, and do not use set -x in steps that handle secrets.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 06: Managing credentials</h2>
+  <p>75 minutes. Open <code>labs/06-credentials.md</code> in the course repository.</p>
+  <ul>
+    <li>Find credentials on disk and in Terraform state, and decode a Kubernetes Secret.</li>
+    <li>Store a secret in Harness and see that Harness Open Source does not mask it in logs.</li>
+    <li>Create a least-privilege deploy ServiceAccount and test its permissions.</li>
+    <li>Block a leaked key with secret scanning, then rotate a token.</li>
+  </ul>
+  <aside class="notes">
+    This lab is investigative. The first part asks you to find credentials on your own machine, so take the time to look
+    rather than rushing through the commands. The deploy ServiceAccount you create here is the identity the Day 3 delivery
+    pipeline uses to deploy the application, so keep it. The leaked key in the secret scanning exercise is the AWS documentation
+    example key, which is not a real credential. Lab 05 must be complete first; otherwise run scripts/catch-up.sh 06.
+  </aside>
+</section>
+
+<!-- ===================== Close ===================== -->
+
+<section>
+  <h2>Day 2 summary</h2>
+  <ul>
+    <li>Infrastructure as code describes the desired state in version-controlled files and applies it with automation.</li>
+    <li>Terraform compares the code, the state and the real infrastructure, shows a plan, and applies it.</li>
+    <li>In a team, state is remote and locked, plans are reviewed in pull requests, and apply runs after merge.</li>
+    <li>Credentials have a narrow scope, a short lifetime where possible, a place in a secret store, and never appear in logs.</li>
+  </ul>
+  <p>Day 3 covers containers, Kubernetes deployments and an end-to-end delivery pipeline.</p>
+  <aside class="notes">
+    Summarise in two minutes and leave time for questions. Ask the class to name one change they would make in their own
+    team's workflow based on today, for example reviewing plans in pull requests or removing a long-lived token from a
+    pipeline. Tomorrow starts with containers: how an image is built from layers, how to scan it, and how a Compose file maps
+    to an ECS task definition. Then Kubernetes rollouts and rollbacks, and finally one pipeline that tests, builds, scans and
+    deploys the flight-status service using the deploy ServiceAccount from Lab 06. Keep your lab machine as it is tonight;
+    tomorrow's labs start from today's state.
+  </aside>
+</section>
+
+<section>
+  <h2>References</h2>
+  <div class="cols">
+    <ul class="refs">
+      <li>Burgess, M. (1995). Cfengine: a site configuration engine. <em>USENIX Computing Systems</em> 8(3).</li>
+      <li>Fowler, M. (2012). SnowflakeServer and PhoenixServer. martinfowler.com/bliki</li>
+      <li>Fowler, C. (2013). Trash your servers and burn your code: immutable infrastructure and disposable components. chadfowler.com</li>
+      <li>Morris, K. (2020). <em>Infrastructure as Code</em>, 2nd ed. O'Reilly.</li>
+      <li>HashiCorp. Terraform documentation: state, backends, plan, modules. developer.hashicorp.com/terraform</li>
+      <li>AWS. CloudFormation User Guide and AWS CDK Developer Guide. docs.aws.amazon.com</li>
+      <li>OpenGitOps (2021). GitOps Principles v1.0.0. opengitops.dev</li>
+      <li>Open Policy Agent documentation. openpolicyagent.org</li>
+    </ul>
+    <ul class="refs">
+      <li>OWASP. Secrets Management Cheat Sheet. cheatsheetseries.owasp.org</li>
+      <li>Saltzer, J. H., and Schroeder, M. D. (1975). The protection of information in computer systems. <em>Proceedings of the IEEE</em> 63(9).</li>
+      <li>Kubernetes documentation: Secrets, encrypting data at rest, service account tokens, RBAC. kubernetes.io/docs</li>
+      <li>AWS. IAM User Guide: temporary security credentials. docs.aws.amazon.com</li>
+      <li>HashiCorp. Vault documentation: database secrets engine. developer.hashicorp.com/vault</li>
+      <li>Harness documentation: secrets, secret managers, policy as code, open source pipelines. developer.harness.io</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    These are the sources for today's lectures. Morris's book is the best single introduction to infrastructure as code. The
+    OWASP Secrets Management Cheat Sheet is short and practical, and it is a good document to share with your team. The
+    Saltzer and Schroeder paper is old but readable, and its eight design principles still appear in security standards.
+    The Terraform and Kubernetes documentation pages listed are the ones the labs link to.
+  </aside>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280, height: 720, margin: 0, center: false, hash: true,
+    controls: false, progress: false, transition: 'none', backgroundTransition: 'none',
+    slideNumber: 'c', showSlideNumber: 'all', pdfSeparateFragments: false,
+    plugins: [ RevealNotes ]
+  });
+</script>
+</body>
+</html>

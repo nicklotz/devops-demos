@@ -1,0 +1,42 @@
+# Continuous integration for flight-status (Lab 03).
+# Adds a PostgreSQL service for the integration tests and a coverage threshold.
+kind: pipeline
+spec:
+  stages:
+  - name: build
+    type: ci
+    spec:
+      steps:
+      - name: db
+        type: background
+        spec:
+          container: postgres:17-alpine
+          envs:
+            POSTGRES_USER: flights
+            POSTGRES_PASSWORD: flights
+            POSTGRES_DB: flights
+      - name: install
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            python -m venv .venv
+            . .venv/bin/activate
+            pip install --quiet -r requirements-dev.txt
+      - name: lint
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            . .venv/bin/activate
+            ruff check .
+            ruff format --check .
+      - name: test
+        type: run
+        spec:
+          container: python:3.12-slim
+          envs:
+            DATABASE_URL: postgresql://flights:flights@db:5432/flights
+          script: |
+            . .venv/bin/activate
+            pytest --cov=flightstatus --cov-report=term-missing --cov-fail-under=90

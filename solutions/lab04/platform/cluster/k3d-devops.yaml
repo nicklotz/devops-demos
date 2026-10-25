@@ -1,0 +1,20 @@
+# k3d cluster for the course labs: one k3s server, the shared "devops" Docker
+# network, the local registry, and the ingress on http://localhost:8080.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: devops
+servers: 1
+agents: 0
+image: rancher/k3s:v1.35.5-k3s1
+network: devops
+kubeAPI:
+  hostIP: "0.0.0.0"
+  hostPort: "6550"
+ports:
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
+registries:
+  use:
+    - k3d-registry.localhost:5000

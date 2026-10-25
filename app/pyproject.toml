@@ -1,0 +1,27 @@
+[project]
+name = "flightstatus"
+version = "1.0.0"
+description = "Flight status API used in the Intermediate DevOps course labs"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Do not write .pytest_cache into the repository when tests run in a container.
+addopts = "-ra -p no:cacheprovider"
+markers = [
+    "integration: needs a PostgreSQL database; set DATABASE_URL to run",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# Keep caches out of the repository when ruff runs in a container as root.
+cache-dir = "/tmp/ruff-cache"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: import order, B: bugbear, UP: pyupgrade
+select = ["E", "W", "F", "I", "B", "UP"]
+
+[tool.coverage.run]
+data_file = "/tmp/flightstatus.coverage"

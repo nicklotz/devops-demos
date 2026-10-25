@@ -1,0 +1,14 @@
+# Files the image does not need. Keeping them out makes builds faster
+# and stops local files (and secrets) from ending up in the image.
+.git
+.harness
+.venv
+__pycache__/
+*.pyc
+tests/
+k8s/
+ecs/
+compose.yaml
+Dockerfile
+.dockerignore
+*.md

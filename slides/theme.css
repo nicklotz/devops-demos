@@ -1,0 +1,85 @@
+/* Intermediate DevOps slide theme for reveal.js 5 (1280 x 720).
+   Plain layout: title, one diagram or one short list, page number only.
+   One accent colour (--accent). No syntax colouring, no footers, no badges. */
+
+/* Variable fonts from github.com/google/fonts (SIL OFL 1.1, licences in fonts/). */
+@font-face { font-family: "Manrope"; src: url("fonts/Manrope.ttf") format("truetype"); font-weight: 200 800; }
+@font-face { font-family: "Space Grotesk"; src: url("fonts/SpaceGrotesk.ttf") format("truetype"); font-weight: 300 700; }
+
+:root {
+  --ink: #14263D;      /* body text and titles */
+  --muted: #5C6B7B;    /* secondary text, table headers */
+  --line: #C3CAD0;     /* diagram box outlines */
+  --rule: #E3E7EA;     /* table rules */
+  --dot: #9AA3A9;      /* bullets, page number */
+  --fill: #F4F6F8;     /* code and diagram box fill */
+  --accent: #0033A0;   /* the one element that matters on a slide */
+  --title-bg: #0B1F3A; /* title slide background */
+}
+
+.reveal-viewport { background: #fff; }
+.reveal { font-family: "Manrope", system-ui, sans-serif; font-size: 22px; color: var(--ink); }
+.reveal .slides { text-align: left; }
+.reveal .slides section { box-sizing: border-box; height: 720px; padding: 52px 72px 56px; }
+/* reveal.css sets padding:0!important in print mode; match its specificity. */
+html.reveal-print .reveal .slides section:not(.title-slide):not(.stack) { padding: 52px 72px 56px !important; }
+.reveal .slides section.title-slide { padding: 0; }
+.reveal .slides section.stack { padding: 0; }
+
+.reveal h1, .reveal h2, .reveal h3 { text-transform: none; text-shadow: none; color: var(--ink); }
+.reveal h2 { font: 400 36px/1.16 "Space Grotesk", sans-serif; letter-spacing: -0.005em; margin: 0 0 30px; max-width: 1080px; }
+.reveal h3 { font: 700 22px/1.3 "Manrope", sans-serif; margin: 24px 0 8px; }
+
+.reveal p { font-size: 22px; line-height: 1.45; margin: 0 0 14px; max-width: 1060px; }
+.reveal ul, .reveal ol { display: block; margin: 0 0 14px; padding: 0; max-width: 1060px; }
+.reveal ul { list-style: none; }
+.reveal ul > li { position: relative; padding-left: 26px; margin: 0 0 12px; font-size: 22px; line-height: 1.42; }
+.reveal ul > li::before { content: ""; position: absolute; left: 4px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); }
+.reveal ol { padding-left: 30px; }
+.reveal ol > li { margin: 0 0 12px; font-size: 22px; line-height: 1.42; padding-left: 4px; }
+.reveal li ul { margin-top: 8px; }
+.reveal li li { font-size: 20px; }
+.reveal strong, .reveal b { font-weight: 700; }
+.reveal em { font-style: italic; }
+.reveal a { color: var(--accent); text-decoration: underline; }
+.reveal .accent { color: var(--accent); font-weight: 700; }
+.reveal .muted { color: var(--muted); }
+.reveal .small { font-size: 18px; }
+
+/* Code: plain, no syntax colouring. */
+.reveal code { font-family: Menlo, "DejaVu Sans Mono", monospace; font-size: 0.86em; color: var(--ink); background: none; padding: 0; }
+.reveal pre { width: auto; max-width: 1136px; margin: 4px 0 18px; box-shadow: none; background: var(--fill); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 20px; font-size: 17px; line-height: 1.45; text-align: left; }
+.reveal pre code { display: block; font-size: 17px; padding: 0; max-height: none; overflow: visible; white-space: pre; color: var(--ink); background: none; }
+
+/* Tables: plain rules, sentence-case bold headers. */
+.reveal table { border-collapse: collapse; margin: 6px 0 18px; font-size: 20px; }
+.reveal table th { text-align: left; font-weight: 700; color: var(--muted); font-size: 17px; padding: 0 22px 8px 0; border-bottom: 1.5px solid var(--line); }
+.reveal table td { text-align: left; padding: 9px 22px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.35; }
+.reveal table tr:last-child td { border-bottom: none; }
+
+/* Two columns. */
+.reveal .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 56px; }
+.reveal .cols-60-40 { display: grid; grid-template-columns: 3fr 2fr; column-gap: 48px; align-items: start; }
+
+/* Diagrams: inline SVG, full content width unless sized. */
+.reveal svg.diagram { display: block; width: 1136px; max-width: 100%; height: auto; margin: 0 0 12px; font-family: "Manrope", sans-serif; }
+.reveal figure { margin: 0; }
+
+/* Title slide (data-background-color set on the section). */
+.reveal section.title-slide { padding: 0 96px; }
+.reveal section.title-slide .t-main { position: absolute; left: 96px; top: 210px; right: 96px; font: 400 58px/1.08 "Space Grotesk", sans-serif; color: #fff; letter-spacing: -0.01em; }
+.reveal section.title-slide .t-sub { position: absolute; left: 96px; top: 360px; right: 96px; font: 400 26px/1.4 "Manrope", sans-serif; color: #C9D3DD; }
+.reveal section.title-slide .t-meta { position: absolute; left: 96px; bottom: 80px; font: 400 18px/1.6 "Manrope", sans-serif; color: #A9B6C3; }
+.reveal section.title-slide .t-band { position: absolute; left: 96px; top: 176px; width: 72px; height: 4px; background: #4F8BFF; }
+
+/* Page number only. Hidden on the title slide. */
+.reveal .slide-number { background: none; color: var(--dot); font: 14px "Manrope", sans-serif; right: 40px; bottom: 22px; }
+.reveal .slide-number a { color: var(--dot); }
+.reveal-viewport.title .slide-number, .reveal.title .slide-number { display: none; }
+html.reveal-print .reveal .pdf-page .title-slide ~ .slide-number-pdf { display: none; }
+html.reveal-print .reveal .slide-number-pdf { color: var(--dot); font: 14px "Manrope", sans-serif; right: 40px; bottom: 22px; }
+
+/* Print (reveal ?print-pdf). */
+@media print {
+  .reveal .slides section { height: 720px; }
+}

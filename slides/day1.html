@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intermediate DevOps · Day 1: Continuous integration</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+  /* Day 1 additions: compact table rows for the schedule and the references list. */
+  .reveal table.compact td { padding: 7px 22px 7px 0; font-size: 19px; }
+  .reveal table.compact th { padding-bottom: 6px; }
+  .reveal ul.refs > li { font-size: 16px; line-height: 1.35; margin-bottom: 6px; padding-left: 20px; }
+  .reveal ul.refs > li::before { top: 9px; width: 6px; height: 6px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- ============================ Welcome ============================ -->
+
+<section class="title-slide" data-state="title" data-background-color="#0B1F3A">
+  <div class="t-band"></div>
+  <div class="t-main">Intermediate DevOps<br>Day 1: Continuous integration</div>
+  <div class="t-sub">United Airlines · Pluralsight instructor-led training</div>
+  <div class="t-meta">Nick Lotz<br>27–29 October 2026</div>
+  <aside class="notes">
+    Welcome everyone. Introduce yourself and your background in DevOps and in teaching.
+    Explain that this is a three-day, hands-on course. Each day has about two hours of lecture and four and a half hours of lab work.
+    Today is about continuous integration: how code moves from a developer's machine into a shared main branch, and how automated
+    pipelines check every change. By the end of the day every participant will have their own Harness Open Source installation,
+    a repository with a small Python service, and a pipeline that tests every pull request.
+    Ask participants to introduce themselves briefly: role, team, and how much they use Git, Harness and Kubernetes today.
+    Note the mix of roles for later examples.
+  </aside>
+</section>
+
+<section>
+  <h2>About this course</h2>
+  <ul>
+    <li>Instructor: Nick Lotz.</li>
+    <li>Hours: 09:00 to 17:00 US Central, with two 10-minute breaks and a 45-minute lunch.</li>
+    <li>About 30% of the time is lecture. About 70% is hands-on lab work.</li>
+    <li>Each lecture prepares you for the lab that follows it.</li>
+    <li>Ask questions at any time, by voice or in the chat.</li>
+  </ul>
+  <aside class="notes">
+    Cover the logistics. The day runs from nine to five Central time. There is a short break mid-morning, lunch around noon,
+    and a short break mid-afternoon. The exact times are on the schedule slide that follows.
+    The course follows Pluralsight's ratio of roughly thirty percent lecture and seventy percent hands-on work.
+    The lectures focus on concepts and the reasons behind the practices. The labs apply those concepts with real tools.
+    Encourage questions at any point. If a question needs a longer answer, park it and come back during a lab.
+    Mention that during labs you can look at a participant's problem together if they share their screen.
+  </aside>
+</section>
+
+<section>
+  <h2>The three days</h2>
+  <table>
+    <tr><th>Day</th><th>Lectures</th><th>Labs</th></tr>
+    <tr><td>1 · Continuous integration</td><td>DevOps foundations, version control and CI, pipelines in Harness, testing and quality gates</td><td style="white-space:nowrap">01, 02, 03</td></tr>
+    <tr><td>2 · Infrastructure as code and credentials</td><td>IaC concepts, Terraform, IaC in pipelines, credential management</td><td style="white-space:nowrap">04, 05, 06</td></tr>
+    <tr><td>3 · Containers, Kubernetes and delivery</td><td>Containers, ECS and Fargate, Kubernetes, continuous delivery</td><td style="white-space:nowrap">07, 08, 09</td></tr>
+  </table>
+  <p>The labs build on each other. The application and pipelines from Day 1 are used again on Days 2 and 3.</p>
+  <aside class="notes">
+    Walk through the three days. Day one builds a continuous integration pipeline for a small airline flight-status service.
+    Day two provisions the environments for that service with Terraform on a local Kubernetes cluster, runs Terraform from a pipeline,
+    and covers how to handle credentials. Day three packages the service as a container, deploys it to Kubernetes,
+    and finishes with one pipeline that tests, builds, scans, deploys and promotes the service, with automatic rollback.
+    The labs are cumulative. If someone misses part of a day, the catch-up script described in two slides restores their machine
+    to the start of any lab.
+  </aside>
+</section>
+
+<section>
+  <h2>Today's schedule</h2>
+  <div class="cols">
+    <table class="compact">
+      <tr><th>Time</th><th>Session</th></tr>
+      <tr><td>09:00</td><td>Welcome and course overview</td></tr>
+      <tr><td>09:20</td><td>DevOps foundations</td></tr>
+      <tr><td>09:50</td><td>Version control and continuous integration</td></tr>
+      <tr><td>10:20</td><td>Break</td></tr>
+      <tr><td>10:30</td><td>Lab 01: Lab environment and Harness Open Source</td></tr>
+      <tr><td>11:30</td><td>Pipelines and Harness</td></tr>
+    </table>
+    <table class="compact">
+      <tr><th>Time</th><th>Session</th></tr>
+      <tr><td>12:00</td><td>Lunch</td></tr>
+      <tr><td>12:45</td><td>Lab 02: Your first CI pipeline</td></tr>
+      <tr><td>14:15</td><td>Break</td></tr>
+      <tr><td>14:25</td><td>Testing and quality gates</td></tr>
+      <tr><td>14:55</td><td>Lab 03: Quality gates, pull requests and integration tests</td></tr>
+      <tr><td>16:55</td><td>Summary and questions</td></tr>
+    </table>
+  </div>
+  <p>All times are US Central.</p>
+  <aside class="notes">
+    Show the plan for the day. Four lectures of about thirty minutes each, and three labs of one hour, ninety minutes and two hours.
+    Lab 01 sets up the machine and Harness Open Source. Lab 02 writes the first pipeline. Lab 03 adds branch protection,
+    pull requests, integration tests with a real database, and a coverage threshold.
+    If the class runs ahead or behind, adjust the break times rather than cutting lab time.
+    The labs are the main part of the course, and people learn most when they have enough time to finish them and read the explanations.
+  </aside>
+</section>
+
+<section>
+  <h2>How the labs work</h2>
+  <ul>
+    <li>The labs are Markdown files in the course repository: <code>github.com/nicklotz/devops-demos</code>.</li>
+    <li>Each step explains why before it shows a command. Read the explanation before you run anything.</li>
+    <li>Checkpoints show what you should see. Troubleshooting notes cover the common problems.</li>
+    <li>"Going further" tasks are optional, for when you finish early.</li>
+    <li>If you fall behind, <code>scripts/catch-up.sh 04</code> brings your machine to the start of Lab 04.</li>
+  </ul>
+  <aside class="notes">
+    Explain the lab format. Every lab has goals at the top, a reason before each step, files that participants write themselves with
+    an explanation of each part, checkpoints that say what the output should look like, and a troubleshooting section.
+    Encourage participants not to paste commands without reading. The previous version of this course was criticised as copy-and-paste,
+    and the labs are written so that the explanations matter.
+    The catch-up script takes a lab number. It runs the earlier labs automatically, so a participant who missed a lab can still start the next one.
+    It takes a few minutes, so run it at the start of a lecture rather than at the start of a lab.
+  </aside>
+</section>
+
+<section>
+  <h2>Your lab machine and United's platform</h2>
+  <p>Each of you has an Ubuntu 24.04 machine with 8 CPUs and 16 GB of memory. You install every tool yourself during the labs.</p>
+  <table>
+    <tr><th>In the lab</th><th>What it does</th><th>At United</th></tr>
+    <tr><td>Harness Open Source</td><td>Git hosting, pull requests, pipelines</td><td>Harness platform</td></tr>
+    <tr><td>k3d (Kubernetes in Docker)</td><td>Runs containers in a cluster</td><td>Amazon EKS</td></tr>
+    <tr><td>Docker Compose and an ECS task definition file</td><td>Runs containers without Kubernetes</td><td>Amazon ECS with Fargate</td></tr>
+    <tr><td>Terraform</td><td>Infrastructure as code</td><td>AWS CDK shared library</td></tr>
+    <tr><td>Harness secrets, Kubernetes Secrets</td><td>Credentials</td><td>TSS</td></tr>
+  </table>
+  <aside class="notes">
+    The lab machines start empty on purpose. Installing the tools shows what each one is for and what it depends on.
+    No AWS account or Harness account is needed. Each tool in the lab stands in for a service used at United.
+    Harness Open Source is the free, self-hosted product from Harness. It has repositories, pull requests and pipelines,
+    but not the deployment features of the Harness platform. Where the platform has a feature, the labs do the same job with a script,
+    and the lectures show which platform feature replaces the script.
+    k3d runs a real Kubernetes cluster inside Docker containers. The Kubernetes concepts are the same as on Amazon EKS.
+    Ask the class which of these United tools they use today.
+  </aside>
+</section>
+
+<!-- ============================ L1 DevOps foundations ============================ -->
+
+<section>
+  <h2>Where DevOps came from</h2>
+  <ul>
+    <li>2008: Andrew Shafer and Patrick Debois meet at the Agile 2008 conference to discuss agile infrastructure.</li>
+    <li>2009: John Allspaw and Paul Hammond present "10+ Deploys per Day" about Flickr's development and operations teams.</li>
+    <li>2009: Debois organises the first devopsdays conference in Ghent, Belgium. The name DevOps comes from it.</li>
+    <li>2013 and 2016: <em>The Phoenix Project</em> and <em>The DevOps Handbook</em> describe the practices.</li>
+    <li>From 2014: the State of DevOps research, later DORA, measures delivery performance.</li>
+  </ul>
+  <aside class="notes">
+    Give the history briefly. In 2008 Andrew Clay Shafer proposed a session on agile infrastructure at the Agile conference in Toronto,
+    and Patrick Debois was the one person who attended. In June 2009 Allspaw and Hammond showed at the Velocity conference that Flickr
+    deployed more than ten times a day because developers and operations engineers worked together and shared tools.
+    Debois then organised devopsdays in Ghent in October 2009, and the short name stuck.
+    The movement grew out of agile software development. Agile had shortened development cycles, but releases still waited weeks
+    for operations. The books and the research came later and gave the practices a vocabulary and evidence.
+    Sources: Allspaw and Hammond (2009); Kim et al. (2021), introduction.
+  </aside>
+</section>
+
+<section>
+  <h2>The problem DevOps addresses</h2>
+  <svg class="diagram" viewBox="0 0 1136 250" role="img" aria-label="Development hands a large release to Operations; feedback returns weeks later">
+    <defs><marker id="arr-s8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="20" width="400" height="130" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="200" y="76" font-size="22" font-weight="700">Development</text>
+      <text x="200" y="108" font-size="18" fill="#5C6B7B">Rewarded for shipping changes</text>
+      <rect x="736" y="20" width="400" height="130" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="936" y="76" font-size="22" font-weight="700">Operations</text>
+      <text x="936" y="108" font-size="18" fill="#5C6B7B">Rewarded for stable systems</text>
+      <text x="568" y="66" font-size="18">A large release, handed over</text>
+      <text x="568" y="122" font-size="17" fill="#5C6B7B">every few weeks or months</text>
+      <text x="568" y="236" font-size="17" fill="#5C6B7B">Reports of production problems, weeks after the code was written</text>
+    </g>
+    <line x1="404" y1="88" x2="730" y2="88" stroke="#0033A0" stroke-width="2.5" marker-end="url(#arr-s8)"/>
+    <path d="M936,154 L936,200 L200,200 L200,158" fill="none" stroke="#5C6B7B" stroke-width="1.8" stroke-dasharray="7 6" marker-end="url(#arr-s8)"/>
+  </svg>
+  <p>The two groups have opposite goals, and work moves between them in large, slow batches. DevOps practices give both groups one shared goal, which is frequent and safe change.</p>
+  <aside class="notes">
+    Describe the situation many organisations were in before DevOps. Development teams are measured on delivering features.
+    Operations teams are measured on uptime. Every release is a risk to operations, so operations slows releases down,
+    and development responds by bundling more changes into each release. Large releases fail more often and are harder to debug.
+    The feedback loop is slow: a developer hears about a production problem weeks later, when the code is no longer fresh in their mind.
+    Ask the class whether they recognise this pattern from mainframe or operations work. Many will.
+    Source: Kim et al. (2021), part 1, "the core, chronic conflict".
+  </aside>
+</section>
+
+<section>
+  <h2>The Three Ways</h2>
+  <svg class="diagram" viewBox="0 0 1136 300" role="img" aria-label="Flow left to right, feedback right to left, continual learning">
+    <defs><marker id="arr-s9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker>
+      <marker id="arr-s9b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0033A0"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D" font-size="20">
+      <rect x="0" y="10" width="320" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="160" y="55">Development</text>
+      <rect x="408" y="10" width="320" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="568" y="55">Operations</text>
+      <rect x="816" y="10" width="320" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="976" y="55">Customer</text>
+    </g>
+    <line x1="30" y1="140" x2="1100" y2="140" stroke="#0033A0" stroke-width="2.5" marker-end="url(#arr-s9b)"/>
+    <text x="30" y="126" font-size="18" fill="#14263D">First Way: work flows quickly from development to the customer</text>
+    <line x1="1106" y1="205" x2="36" y2="205" stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s9)"/>
+    <text x="1106" y="191" font-size="18" fill="#14263D" text-anchor="end">Second Way: feedback flows back at every stage</text>
+    <text x="0" y="270" font-size="18" fill="#14263D">Third Way: teams experiment, learn from failures, and improve their daily work</text>
+  </svg>
+  <p>The Three Ways are the principles behind most DevOps practices (Kim et al., 2021).</p>
+  <aside class="notes">
+    The DevOps Handbook organises the practices under three principles.
+    The First Way is flow: make work move quickly from left to right, from a developer's idea to a customer, in small batches,
+    with as little waiting as possible. Continuous integration and deployment pipelines belong here.
+    The Second Way is feedback: detect problems where they happen and send the information back quickly. Automated tests,
+    monitoring and pull request checks belong here.
+    The Third Way is continual learning and experimentation: blameless reviews of incidents, time to improve the system, and safe experiments.
+    Today's labs mostly cover the First and Second Ways.
+    Source: Kim, Humble, Debois, Willis and Forsgren (2021), The DevOps Handbook, 2nd edition, parts 2 to 5.
+  </aside>
+</section>
+
+<section>
+  <h2>Value streams and lead time</h2>
+  <svg class="diagram" viewBox="0 0 1136 250" role="img" aria-label="A change from commit to production: 6.5 hours of work, about 9 days of lead time">
+    <defs><marker id="arr-s10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="30" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="110" y="70" font-size="20">Code review</text><text x="110" y="98" font-size="17" fill="#5C6B7B">work: 1 h</text>
+      <rect x="305" y="30" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="415" y="70" font-size="20">Testing</text><text x="415" y="98" font-size="17" fill="#5C6B7B">work: 4 h</text>
+      <rect x="610" y="30" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="720" y="70" font-size="20">Approval</text><text x="720" y="98" font-size="17" fill="#5C6B7B">work: 0.5 h</text>
+      <rect x="916" y="30" width="220" height="90" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1026" y="70" font-size="20">Deployment</text><text x="1026" y="98" font-size="17" fill="#5C6B7B">work: 1 h</text>
+      <text x="263" y="20" font-size="17" fill="#5C6B7B">wait 2 days</text>
+      <text x="568" y="20" font-size="17" fill="#5C6B7B">wait 3 days</text>
+      <text x="873" y="20" font-size="17" fill="#5C6B7B">wait 4 days</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s10)">
+      <line x1="222" y1="75" x2="300" y2="75"/><line x1="527" y1="75" x2="605" y2="75"/><line x1="832" y1="75" x2="911" y2="75"/>
+    </g>
+    <line x1="0" y1="168" x2="1136" y2="168" stroke="#C3CAD0" stroke-width="1.5"/>
+    <text x="0" y="206" font-size="20" fill="#14263D">Work time: 6.5 hours</text>
+    <text x="1136" y="206" font-size="20" fill="#0033A0" font-weight="700" text-anchor="end">Lead time: about 9 days</text>
+  </svg>
+  <p>Lead time for changes is the time from commit to running in production (Forsgren et al., 2018). In this example the change spends most of its lead time waiting.</p>
+  <aside class="notes">
+    A value stream is the sequence of activities that turns a request into something a customer uses.
+    Value stream mapping records, for each activity, the work time and the waiting time before it.
+    In this made-up example a change needs six and a half hours of work but takes about nine days to reach production,
+    because it waits in queues: for a reviewer, for a test environment, for a change approval board, for a release window.
+    Improving the speed of individual people barely changes the lead time. Removing waits does.
+    Automation removes many of these waits: tests run when the code is pushed, and deployment does not need a scheduled window.
+    Ask the class where changes wait longest in their own process.
+    Sources: Kim et al. (2021), chapter 7; Forsgren, Humble and Kim (2018), chapter 2.
+  </aside>
+</section>
+
+<section>
+  <h2>Batch size and work in progress</h2>
+  <ul>
+    <li>A batch is the amount of change released at one time.</li>
+    <li>A large batch takes longer to test, fails more often, and is harder to debug when it fails.</li>
+    <li>A small batch gives feedback sooner and is easier to roll back.</li>
+    <li>Work in progress (WIP) is work that has started and not finished.</li>
+    <li>Little's Law: average lead time = average WIP ÷ average throughput (Little, 1961).</li>
+  </ul>
+  <p>Example: a team has 20 items in progress and finishes 5 per week. An item takes 4 weeks on average.</p>
+  <aside class="notes">
+    Batch size is one of the main ideas of lean manufacturing that DevOps applies to software.
+    When a release contains two hundred changes and something breaks, the team must search two hundred changes for the cause.
+    When a release contains one change, the cause is obvious and the rollback is small.
+    Little's Law comes from queueing theory. It holds for any stable system: the average time an item spends in the system equals
+    the number of items in the system divided by the rate at which items leave.
+    The practical result: to shorten lead time without working faster, start fewer things at once.
+    This is why trunk-based development and small pull requests matter, which is the next lecture.
+    Sources: Little, J. D. C. (1961), Operations Research 9(3); Kim et al. (2021), chapter 2.
+  </aside>
+</section>
+
+<section>
+  <h2>Measuring delivery performance</h2>
+  <table>
+    <tr><th>Metric</th><th>Question it answers</th><th>Measures</th></tr>
+    <tr><td>Deployment frequency</td><td>How often do we deploy to production?</td><td>Throughput</td></tr>
+    <tr><td>Lead time for changes</td><td>How long does a commit take to reach production?</td><td>Throughput</td></tr>
+    <tr><td>Change failure rate</td><td>What share of deployments cause a failure in production?</td><td>Stability</td></tr>
+    <tr><td>Failed deployment recovery time</td><td>How long does it take to recover from a failed deployment?</td><td>Stability</td></tr>
+  </table>
+  <p>These are the DORA metrics (Forsgren et al., 2018). The 2024 DORA report adds a fifth measure, rework rate, which is the share of deployments that are unplanned fixes for production problems.</p>
+  <aside class="notes">
+    DORA stands for DevOps Research and Assessment. The research started with the State of DevOps reports in 2014 and is now run by Google Cloud.
+    The four metrics measure software delivery, not individual people. Two measure throughput and two measure stability.
+    The fourth metric was called "time to restore service" until 2023, when DORA renamed it to failed deployment recovery time
+    to make clear it measures recovery from a change, not every kind of outage. DORA's current names are change lead time and change fail rate.
+    Warn against using the metrics to compare teams or to set individual targets. Teams then change how they count instead of how they work.
+    Sources: Forsgren, Humble and Kim (2018), chapter 2; DORA (2024), Accelerate State of DevOps Report.
+  </aside>
+</section>
+
+<section>
+  <h2>What the research found</h2>
+  <ul>
+    <li>Teams with high throughput also had high stability. Speed and stability did not trade off against each other.</li>
+    <li>Delivery performance predicted organisational performance, such as profitability and market share.</li>
+    <li>Technical capabilities predicted delivery performance. Examples: version control, trunk-based development, continuous integration, test automation, deployment automation.</li>
+    <li>This course practises several of these capabilities.</li>
+  </ul>
+  <p>Source: Forsgren, Humble and Kim (2018), based on more than 23,000 survey responses.</p>
+  <aside class="notes">
+    Accelerate summarises four years of State of DevOps research, from 2014 to 2017.
+    The first finding surprises many people: the teams that deploy most often also have the lowest change failure rates and recover fastest.
+    Small, frequent, automated changes are safer than large, rare, manual ones.
+    The second finding links software delivery to the business. The third identifies capabilities that predict performance.
+    The book lists twenty-four. Several of them are the topics of this course: version control of everything, trunk-based development,
+    continuous integration, test automation, deployment automation and shifting security left.
+    Point out that the research measures correlation and uses statistical methods to support the predictions, which the book explains in part two.
+    Source: Forsgren, Humble and Kim (2018), chapters 2, 3 and 4.
+  </aside>
+</section>
+
+<!-- ============================ L2 Version control and CI ============================ -->
+
+<section>
+  <h2>What version control records</h2>
+  <svg class="diagram" viewBox="0 0 1136 212" role="img" aria-label="Commit graph with a feature branch merged into main">
+    <g stroke="#5C6B7B" stroke-width="2" fill="none">
+      <line x1="80" y1="60" x2="760" y2="60"/>
+      <path d="M240,60 L300,150 L560,150 L700,72"/>
+    </g>
+    <g stroke-width="2">
+      <circle cx="80" cy="60" r="16" fill="#fff" stroke="#5C6B7B"/>
+      <circle cx="240" cy="60" r="16" fill="#fff" stroke="#5C6B7B"/>
+      <circle cx="460" cy="60" r="16" fill="#fff" stroke="#5C6B7B"/>
+      <circle cx="380" cy="150" r="16" fill="#fff" stroke="#5C6B7B"/>
+      <circle cx="540" cy="150" r="16" fill="#fff" stroke="#5C6B7B"/>
+      <circle cx="720" cy="60" r="18" fill="#fff" stroke="#0033A0" stroke-width="3"/>
+    </g>
+    <g font-size="16" fill="#5C6B7B" text-anchor="middle">
+      <text x="80" y="30">a1f3</text><text x="240" y="30">7c02</text><text x="460" y="30">e91b</text>
+      <text x="380" y="190">4d5e</text><text x="540" y="190">b37a</text>
+    </g>
+    <text x="720" y="28" font-size="17" fill="#0033A0" text-anchor="middle">merge commit (two parents)</text>
+    <g font-size="18" fill="#14263D">
+      <rect x="800" y="42" width="90" height="36" rx="4" fill="#F4F6F8" stroke="#C3CAD0"/>
+      <text x="845" y="66" text-anchor="middle">main</text>
+      <line x1="800" y1="60" x2="742" y2="60" stroke="#5C6B7B" stroke-width="1.5"/>
+      <rect x="600" y="166" width="200" height="36" rx="4" fill="#F4F6F8" stroke="#C3CAD0"/>
+      <text x="700" y="190" text-anchor="middle">feature/departures</text>
+      <line x1="600" y1="184" x2="558" y2="158" stroke="#5C6B7B" stroke-width="1.5"/>
+    </g>
+  </svg>
+  <ul>
+    <li>A commit is a snapshot of all files, plus the author, time, message and parent commit.</li>
+    <li>Git names each commit by a hash of its content and its parents. Changing anything changes the hash.</li>
+    <li>A branch is a name that points to one commit. A merge commit has two parents.</li>
+  </ul>
+  <aside class="notes">
+    Most participants use Git, but it helps to state the model precisely because pipelines depend on it.
+    A commit stores a complete snapshot of the project, not a diff. Git computes a hash from the snapshot, the metadata and the parent hashes.
+    Because the parent hash is part of the input, a commit hash identifies the whole history before it. If anyone rewrites an old commit,
+    every later hash changes. This is why a pipeline can report a result for an exact commit and nobody can change that commit afterwards.
+    A branch is a movable pointer. When you commit on a branch, the pointer moves to the new commit.
+    In the diagram the feature branch started at 7c02, received two commits, and was merged into main.
+    Source: Chacon and Straub, Pro Git, 2nd edition, chapter 3 (git-scm.com/book).
+  </aside>
+</section>
+
+<section>
+  <h2>Two branching strategies</h2>
+  <table>
+    <tr><th></th><th>Git Flow (Driessen, 2010)</th><th>Trunk-based development</th></tr>
+    <tr><td>Long-lived branches</td><td><code>main</code>, <code>develop</code>, release and hotfix branches</td><td><code>main</code> only</td></tr>
+    <tr><td>Feature branches</td><td>Last until the feature is finished, often weeks</td><td>Last for hours, at most one or two days</td></tr>
+    <tr><td>When work is integrated</td><td>When a feature branch merges</td><td>At least once a day</td></tr>
+    <tr><td>Releases</td><td>Prepared on a release branch</td><td>Made from <code>main</code> at any time</td></tr>
+  </table>
+  <p>The labs use trunk-based development with short-lived branches and pull requests.</p>
+  <aside class="notes">
+    Git Flow was published by Vincent Driessen in 2010 and became very popular. It suits software with planned, numbered releases
+    that must support several versions at once, such as installed desktop software.
+    In 2020 Driessen added a note to the original article. He wrote that for software that is delivered continuously, such as web applications,
+    a simpler workflow is a better fit than Git Flow.
+    Trunk-based development keeps one main branch, often called trunk. Developers merge small changes into it every day.
+    Ask the class which model their teams use today, and how long their branches usually live.
+    Sources: Driessen, V. (2010, note added 2020), "A successful Git branching model", nvie.com; Hammant, P., trunkbaseddevelopment.com.
+  </aside>
+</section>
+
+<section>
+  <h2>Trunk-based development</h2>
+  <svg class="diagram" viewBox="0 0 1136 170" role="img" aria-label="Many short branches merged back into main">
+    <defs><marker id="arr-s16" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0033A0"/></marker></defs>
+    <line x1="20" y1="85" x2="1040" y2="85" stroke="#0033A0" stroke-width="3" marker-end="url(#arr-s16)"/>
+    <text x="1056" y="91" font-size="18" fill="#0033A0" font-weight="700">main</text>
+    <g fill="none" stroke="#5C6B7B" stroke-width="1.8">
+      <path d="M90,85 Q150,25 210,85"/><path d="M270,85 Q320,145 370,85"/><path d="M430,85 Q500,25 570,85"/>
+      <path d="M620,85 Q670,145 720,85"/><path d="M780,85 Q840,25 900,85"/>
+    </g>
+    <g fill="#fff" stroke="#5C6B7B" stroke-width="1.8">
+      <circle cx="210" cy="85" r="7"/><circle cx="370" cy="85" r="7"/><circle cx="570" cy="85" r="7"/><circle cx="720" cy="85" r="7"/><circle cx="900" cy="85" r="7"/>
+    </g>
+    <text x="20" y="160" font-size="17" fill="#5C6B7B">Each branch has one author and lasts for hours, at most one or two days.</text>
+  </svg>
+  <ul>
+    <li>Developers merge small changes into <code>main</code> at least once a day.</li>
+    <li>Unfinished features are hidden behind feature flags, so <code>main</code> can always be released.</li>
+    <li>High performers had three or fewer active branches, branches that lived less than a day, and no code freezes (Forsgren et al., 2018).</li>
+  </ul>
+  <aside class="notes">
+    In trunk-based development the main branch is the integration point. Branches still exist, but only to hold a change while it is reviewed.
+    The change is small enough to review in minutes and merge the same day.
+    Large features are built in small steps. Code that is not ready for users is merged but switched off with a feature flag.
+    Day 3 returns to feature flags as a release technique.
+    The Accelerate research found that these branch habits predicted delivery performance. Teams with long-lived branches and code freezes
+    performed worse, because integration was delayed and risky.
+    Sources: Forsgren, Humble and Kim (2018), chapter 4; Hammant, P., trunkbaseddevelopment.com.
+  </aside>
+</section>
+
+<section>
+  <h2>Pull requests and code review</h2>
+  <ul>
+    <li>A pull request asks to merge one branch into another. It shows the diff, the discussion and the results of automated checks.</li>
+    <li>Reviewers check correctness, design, tests and readability.</li>
+    <li>A study at Microsoft found that reviews found fewer defects than developers expected. Knowledge transfer and team awareness were major outcomes (Bacchelli and Bird, 2013).</li>
+    <li>Small pull requests get faster and more careful reviews.</li>
+  </ul>
+  <aside class="notes">
+    The pull request is where automation and people meet. The pipeline checks what a machine can check: the build, the tests, the lint rules.
+    The reviewer checks what a machine cannot: whether the change is the right change, whether the design fits, whether the tests test the right thing.
+    Bacchelli and Bird interviewed and surveyed developers at Microsoft and analysed review comments. Developers said finding defects was the main reason
+    for review, but most comments were about code improvements and understanding. Review also spreads knowledge of the codebase across the team.
+    Large pull requests are hard to review properly. Reviewers skim them and approve them. Keep pull requests to a size a colleague can read in about twenty minutes.
+    Source: Bacchelli, A., and Bird, C. (2013), "Expectations, outcomes, and challenges of modern code review", ICSE 2013.
+  </aside>
+</section>
+
+<section>
+  <h2>Continuous integration practices</h2>
+  <ul>
+    <li>Keep everything needed to build the software in version control.</li>
+    <li>Automate the build, and make the build test itself.</li>
+    <li>Everyone pushes commits to the main branch every day.</li>
+    <li>Every push to the main branch triggers a build.</li>
+    <li>Fix a broken build immediately. Keep the build under about ten minutes.</li>
+  </ul>
+  <p>Fowler's article lists more practices. These five are the ones a pipeline enforces (Fowler, 2024).</p>
+  <aside class="notes">
+    Martin Fowler's article on continuous integration was first published in 2000, rewritten in 2006 and revised again in January 2024.
+    It defines CI as a practice, not a tool: a team integrates its work frequently, and each integration is verified by an automated build with tests.
+    A team that has a build server but merges once a month does not practise CI.
+    The ten-minute build comes from Extreme Programming. If the build takes an hour, people stop waiting for it and push more changes on top of a broken build.
+    The other practices in the article include hiding work in progress, testing in a clone of production, making the build status visible, and automating deployment.
+    Source: Fowler, M. (2024), "Continuous Integration", martinfowler.com/articles/continuousIntegration.html.
+  </aside>
+</section>
+
+<section>
+  <h2>Why integration delay is expensive</h2>
+  <svg class="diagram" viewBox="0 0 1136 250" role="img" aria-label="Daily small merges compared with one large merge after three weeks">
+    <g font-size="18" fill="#14263D"><text x="0" y="66">Integrate every day</text><text x="0" y="176">Integrate after three weeks</text></g>
+    <g stroke="#5C6B7B" stroke-width="2" fill="none">
+      <line x1="300" y1="60" x2="1130" y2="60"/>
+      <path d="M340,60 Q380,20 420,60"/><path d="M480,60 Q520,20 560,60"/><path d="M620,60 Q660,20 700,60"/>
+      <path d="M760,60 Q800,20 840,60"/><path d="M900,60 Q940,20 980,60"/><path d="M1040,60 Q1070,20 1100,60"/>
+      <line x1="300" y1="170" x2="1130" y2="170"/>
+      <path d="M340,170 L400,225 L960,225 L1020,184"/>
+    </g>
+    <circle cx="1030" cy="170" r="14" fill="#fff" stroke="#0033A0" stroke-width="3"/>
+    <text x="1030" y="132" font-size="17" fill="#0033A0" text-anchor="middle">one large merge</text>
+    <text x="660" y="246" font-size="16" fill="#5C6B7B" text-anchor="middle">meanwhile, main has changed in many places</text>
+  </svg>
+  <ul>
+    <li>The longer two branches stay apart, the more both of them change, and the larger the conflicts.</li>
+    <li>A conflict found after three weeks involves code that its authors no longer remember well.</li>
+    <li>Integrating every day keeps each merge small and each problem easy to locate.</li>
+  </ul>
+  <aside class="notes">
+    Integration effort does not grow in a straight line with time. Two developers who each change ten files a day overlap rarely in one day,
+    but after three weeks their changes touch many of the same areas, and the combined change is too large to reason about.
+    Teams used to call the weeks before a release "integration hell". Continuous integration removes that phase by integrating continuously.
+    Ask the class if they have experienced a merge that took more than a day to resolve. Ask how big the branches were.
+    Source: Fowler (2024), section "Integration Hell"; Humble and Farley (2010), chapter 3.
+  </aside>
+</section>
+
+<section>
+  <h2>The deployment pipeline</h2>
+  <svg class="diagram" viewBox="0 0 1136 270" role="img" aria-label="Commit stage, acceptance stage, deploy to dev, deploy to production">
+    <defs><marker id="arr-s20" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="20" width="250" height="110" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="125" y="62" font-size="20" font-weight="700">Commit stage</text>
+      <text x="125" y="90" font-size="16" fill="#5C6B7B">build, unit tests,</text><text x="125" y="112" font-size="16" fill="#5C6B7B">static analysis</text>
+      <rect x="295" y="20" width="250" height="110" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="420" y="62" font-size="20" font-weight="700">Acceptance stage</text>
+      <text x="420" y="90" font-size="16" fill="#5C6B7B">integration and</text><text x="420" y="112" font-size="16" fill="#5C6B7B">API tests</text>
+      <rect x="590" y="20" width="250" height="110" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="715" y="62" font-size="20" font-weight="700">Deploy to dev</text>
+      <text x="715" y="90" font-size="16" fill="#5C6B7B">smoke tests</text>
+      <rect x="886" y="20" width="250" height="110" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="1011" y="62" font-size="20" font-weight="700">Deploy to production</text>
+      <text x="1011" y="90" font-size="16" fill="#5C6B7B">same artifact</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s20)">
+      <line x1="252" y1="75" x2="290" y2="75"/><line x1="547" y1="75" x2="585" y2="75"/><line x1="842" y1="75" x2="881" y2="75"/>
+    </g>
+    <line x1="0" y1="170" x2="1130" y2="170" stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s20)"/>
+    <text x="0" y="200" font-size="17" fill="#5C6B7B">Each stage takes longer and gives more confidence that the change can be released.</text>
+    <g font-size="17" fill="#14263D" text-anchor="middle"><text x="272" y="250">Labs 02 and 03</text><text x="863" y="250">Lab 09</text></g>
+    <g stroke="#C3CAD0" stroke-width="1.5" fill="none"><path d="M0,224 L0,232 L545,232 L545,224"/><path d="M590,224 L590,232 L1136,232 L1136,224"/></g>
+  </svg>
+  <p>A change moves to the next stage only if it passed the previous one (Humble and Farley, 2010).</p>
+  <aside class="notes">
+    Humble and Farley defined the deployment pipeline as the automated path every change takes from version control to production.
+    The commit stage runs in minutes and catches most problems. It compiles or packages the code, runs unit tests and static analysis,
+    and produces the artifact that later stages use. The acceptance stage runs slower tests against the built artifact.
+    Later stages deploy the same artifact to environments closer to production.
+    The pipeline also records evidence: for each version, which tests ran and which environments it reached.
+    Today's labs build the first two stages. Lab 09 on Day 3 adds deployment, smoke tests, promotion and rollback.
+    Source: Humble, J., and Farley, D. (2010), Continuous Delivery, chapter 5.
+  </aside>
+</section>
+
+<section>
+  <h2>Build once, promote the same artifact</h2>
+  <svg class="diagram" viewBox="0 0 1136 230" role="img" aria-label="One image built once and deployed to dev and production with different configuration">
+    <defs><marker id="arr-s21" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="75" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="100" y="121" font-size="20">Pipeline build</text>
+      <rect x="270" y="65" width="320" height="100" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="430" y="106" font-size="20">flight-status image</text>
+      <text x="430" y="136" font-size="16" fill="#5C6B7B">sha256:4f2a9c…</text>
+      <rect x="696" y="10" width="440" height="84" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="916" y="45" font-size="20">Dev</text><text x="916" y="74" font-size="16" fill="#5C6B7B">configuration for the dev database</text>
+      <rect x="696" y="136" width="440" height="84" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="916" y="171" font-size="20">Production</text><text x="916" y="200" font-size="16" fill="#5C6B7B">configuration for the production database</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s21)">
+      <line x1="202" y1="115" x2="265" y2="115"/><line x1="592" y1="100" x2="691" y2="56"/><line x1="592" y1="130" x2="691" y2="174"/>
+    </g>
+  </svg>
+  <ul>
+    <li>Build the artifact once, in the pipeline. Deploy that same artifact to every environment.</li>
+    <li>Only the configuration changes between environments. Keep configuration in the environment (Wiggins, 2011).</li>
+    <li>If you rebuild for production, you deploy something that was never tested.</li>
+  </ul>
+  <aside class="notes">
+    An artifact is the output of the build: a JAR file, a Python wheel, or, in this course, a container image.
+    The image is identified by a digest, a hash of its content, so you can prove that production runs the same image that dev tested.
+    Rebuilding from the same commit is not the same thing: dependencies may have changed, and the build machine may differ.
+    The Twelve-Factor App calls this separation "strict separation of config from code" and recommends environment variables for configuration.
+    In Lab 09 the pipeline builds one image, tags it with the build number, deploys it to dev, tests it, and promotes the same image to production.
+    Sources: Humble and Farley (2010), chapter 5; Wiggins, A. (2011), The Twelve-Factor App, factor III, 12factor.net.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 01: Lab environment and Harness Open Source</h2>
+  <p>60 minutes. Open <code>labs/01-lab-environment.md</code> in the course repository.</p>
+  <ul>
+    <li>Install git, curl, jq, Docker and VS Code on your lab machine.</li>
+    <li>Start Harness Open Source in a Docker container.</li>
+    <li>Create the <code>flightops</code> project and the <code>flight-status</code> repository.</li>
+    <li>Push the starter application and look at it in the Harness web interface.</li>
+  </ul>
+  <aside class="notes">
+    Before participants start, show where the course repository is and how to open the first lab.
+    Remind them to read the reason before each step and to check each checkpoint.
+    The Docker installation adds their user to the docker group. If the docker command reports "permission denied" in a new terminal,
+    the lab explains how to fix it.
+    The Harness container needs about a minute to start the first time. Some participants will try to open the web page too early.
+    Walk around the virtual room during the lab. Ask participants to post in the chat when they have pushed the starter application.
+    After the lab, the next lecture explains what Harness does when it runs a pipeline.
+  </aside>
+</section>
+
+<!-- ============================ L3 Pipelines and Harness ============================ -->
+
+<section>
+  <h2>The parts of a pipeline</h2>
+  <svg class="diagram" viewBox="0 0 1136 270" role="img" aria-label="A trigger starts a pipeline execution with a stage of steps that reports a status check">
+    <defs><marker id="arr-s23" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="95" width="170" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="85" y="141" font-size="20">Trigger</text>
+      <rect x="220" y="10" width="690" height="250" rx="6" fill="#fff" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="245" y="42" font-size="17" fill="#5C6B7B" text-anchor="start">Pipeline execution</text>
+      <rect x="250" y="62" width="630" height="170" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="275" y="92" font-size="17" fill="#5C6B7B" text-anchor="start">Stage: build</text>
+      <rect x="280" y="118" width="170" height="80" rx="6" fill="#fff" stroke="#C3CAD0" stroke-width="1.5"/><text x="365" y="164" font-size="19">clone</text>
+      <rect x="480" y="118" width="170" height="80" rx="6" fill="#fff" stroke="#C3CAD0" stroke-width="1.5"/><text x="565" y="164" font-size="19">lint</text>
+      <rect x="680" y="118" width="170" height="80" rx="6" fill="#fff" stroke="#C3CAD0" stroke-width="1.5"/><text x="765" y="164" font-size="19">test</text>
+      <rect x="960" y="95" width="176" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="1048" y="130" font-size="20">Status check</text><text x="1048" y="156" font-size="16" fill="#5C6B7B">success or failure</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s23)">
+      <line x1="172" y1="135" x2="215" y2="135"/><line x1="452" y1="158" x2="475" y2="158"/><line x1="652" y1="158" x2="675" y2="158"/><line x1="912" y1="135" x2="955" y2="135"/>
+    </g>
+  </svg>
+  <ul>
+    <li>A trigger starts an execution: a push, a pull request, a tag, or a person selecting Run.</li>
+    <li>A pipeline has stages. A stage has steps that run in order. A failed step stops the stage.</li>
+    <li>The execution reports its status back to the commit and the pull request.</li>
+  </ul>
+  <aside class="notes">
+    Use the vocabulary consistently from now on. A pipeline is the definition. An execution, or run, is one use of that definition for one commit.
+    Each execution has a number, which the YAML can read as build.number.
+    The clone step is added automatically. It fetches the commit that triggered the execution into the workspace.
+    The steps you write run after it, in order. If any step fails, the stage stops and the execution reports failure.
+    The status check is what branch rules use to allow or block a merge. Lab 03 depends on it.
+    The Harness platform uses the same words: pipeline, stage, step, execution, trigger.
+  </aside>
+</section>
+
+<section>
+  <h2>Pipeline as code</h2>
+  <div class="cols-60-40">
+<pre><code>kind: pipeline
+spec:
+  stages:
+  - name: build
+    type: ci
+    spec:
+      steps:
+      - name: test
+        type: run
+        spec:
+          container: python:3.12-slim
+          script: |
+            pip install -r requirements-dev.txt
+            pytest</code></pre>
+    <ul>
+      <li>The pipeline is a YAML file in the repository: <code>.harness/ci.yaml</code>.</li>
+      <li>A change to the pipeline is reviewed in a pull request, like a change to the code.</li>
+      <li>The history shows who changed the pipeline, when, and why.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    Read the YAML from the top. kind: pipeline says what the file is. A pipeline has a list of stages. A ci stage has a list of steps.
+    The step called test has type run, which means: start this container image and run this script inside it.
+    Storing the pipeline next to the code has three benefits. The pipeline and the code that it builds always match, because they come from the same commit.
+    Pipeline changes go through review. And an old commit can still be built with the pipeline that existed at that time.
+    Older CI servers stored jobs in a web interface, so nobody could review or roll back a change to a job.
+    In Lab 02 participants write this file themselves, one step at a time.
+  </aside>
+</section>
+
+<section>
+  <h2>Containers as build environments</h2>
+  <ul>
+    <li>Each step names a container image, for example <code>python:3.12-slim</code>.</li>
+    <li>The image provides the tools. Nothing is installed on the machine that runs the pipeline.</li>
+    <li>Every execution starts from the same image, so a result can be repeated.</li>
+    <li>Pin the image tag. A floating tag such as <code>latest</code> can change between two runs.</li>
+    <li>Steps can use different images: Python for tests, Terraform for infrastructure, kubectl for deployments.</li>
+  </ul>
+  <aside class="notes">
+    Before containers, build servers had every tool installed on them: several versions of Java, Python, Node and so on.
+    Teams fought over the versions, and a build that passed on one agent failed on another.
+    With a container per step, each step declares its environment. The machine that runs the pipeline only needs Docker.
+    The same image runs on a developer's laptop, so "it works on my machine" becomes easier to check: run the same image locally.
+    Lab 02 does this. Participants run the tests in python:3.12-slim on their own machine before they write the pipeline.
+    Pinning matters because tags are mutable. python:3.12-slim today and next month are different images. For full reproducibility
+    you pin the digest, which Day 3 explains.
+  </aside>
+</section>
+
+<section>
+  <h2>How Harness Open Source runs a step on your machine</h2>
+  <svg class="diagram" viewBox="0 0 1136 380" role="img" aria-label="Harness container starts step containers through the Docker socket on the devops network">
+    <defs><marker id="arr-s26" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="0" y="0" width="1136" height="380" rx="8" fill="#fff" stroke="#C3CAD0" stroke-width="1.5"/>
+    <text x="18" y="28" font-size="16" fill="#5C6B7B">Your lab machine</text>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="24" y="60" width="210" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="129" y="94" font-size="19">Browser</text><text x="129" y="120" font-size="16" fill="#5C6B7B">localhost:3000</text>
+      <rect x="24" y="250" width="210" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="129" y="284" font-size="19">Docker Engine</text><text x="129" y="310" font-size="16" fill="#5C6B7B">docker.sock</text>
+    </g>
+    <rect x="300" y="44" width="520" height="320" rx="8" fill="none" stroke="#9AA3A9" stroke-width="1.5" stroke-dasharray="8 6"/>
+    <text x="316" y="70" font-size="16" fill="#5C6B7B">Docker network: devops</text>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="330" y="88" width="460" height="86" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="560" y="124" font-size="19">harness container</text><text x="560" y="152" font-size="16" fill="#5C6B7B">web interface, Git repositories, pipelines, secrets</text>
+      <rect x="330" y="258" width="200" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="430" y="302" font-size="19">clone step</text>
+      <rect x="590" y="258" width="200" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="690" y="302" font-size="19">test step</text>
+      <rect x="860" y="258" width="250" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="985" y="290" font-size="19">workspace volume</text><text x="985" y="316" font-size="16" fill="#5C6B7B">mounted by every step</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" fill="none" marker-end="url(#arr-s26)">
+      <line x1="236" y1="100" x2="325" y2="118"/>
+      <line x1="330" y1="168" x2="238" y2="262"/>
+      <line x1="236" y1="296" x2="325" y2="296"/>
+      <line x1="430" y1="256" x2="430" y2="179"/>
+    </g>
+    <path d="M530,296 L590,296 M790,296 L858,296" stroke="#9AA3A9" stroke-width="1.5" stroke-dasharray="5 5"/>
+    <text x="130" y="205" font-size="16" fill="#5C6B7B" text-anchor="middle">starts step containers</text>
+    <text x="442" y="222" font-size="16" fill="#5C6B7B">git clone http://harness:3000/…</text>
+  </svg>
+  <p>Harness asks Docker to start one container per step. The steps reach Harness by the name <code>harness</code> on the <code>devops</code> network.</p>
+  <aside class="notes">
+    This is the setup participants built in Lab 01. Harness Open Source runs in one container. The Docker socket is mounted into it,
+    so Harness can ask the Docker Engine on the lab machine to start other containers.
+    For each execution Harness creates a workspace volume, starts a clone container that fetches the code from Harness over HTTP,
+    and then starts one container per step with the workspace mounted.
+    The devops network is a user-defined Docker network. Containers on it can reach each other by name, which is why the clone step can use
+    http://harness:3000. On Day 2 the Kubernetes cluster joins the same network, so pipeline steps can reach it too.
+    On the Harness platform the same job is done by Harness Cloud machines or by a delegate inside the company network.
+  </aside>
+</section>
+
+<section>
+  <h2>Steps share the workspace</h2>
+  <svg class="diagram" viewBox="0 0 1136 270" role="img" aria-label="Three step containers mount one shared workspace volume">
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="10" width="340" height="140" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="170" y="52" font-size="20" font-weight="700">clone step</text>
+      <text x="170" y="84" font-size="17" fill="#5C6B7B">writes the code into</text><text x="170" y="108" font-size="17" fill="#5C6B7B">the workspace</text>
+      <rect x="398" y="10" width="340" height="140" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="568" y="52" font-size="20" font-weight="700">install step</text>
+      <text x="568" y="84" font-size="17" fill="#5C6B7B">packages installed outside the</text><text x="568" y="108" font-size="17" fill="#5C6B7B">workspace are lost at the end</text>
+      <rect x="796" y="10" width="340" height="140" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+      <text x="966" y="52" font-size="20" font-weight="700">test step</text>
+      <text x="966" y="84" font-size="17" fill="#5C6B7B">reads the code and any files</text><text x="966" y="108" font-size="17" fill="#5C6B7B">earlier steps wrote</text>
+      <rect x="0" y="200" width="1136" height="64" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="568" y="240" font-size="19">Workspace volume: the cloned repository, plus files such as a virtual environment or test reports</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8"><line x1="170" y1="152" x2="170" y2="198"/><line x1="568" y1="152" x2="568" y2="198"/><line x1="966" y1="152" x2="966" y2="198"/></g>
+  </svg>
+  <ul>
+    <li>Each step runs in a new container, with its own filesystem.</li>
+    <li>Only the workspace is shared. To pass files to a later step, write them into the workspace.</li>
+  </ul>
+  <aside class="notes">
+    This catches many people the first time. If step one runs pip install and step two runs pytest, step two fails with "pytest: command not found",
+    because the package was installed in step one's container, and that container is gone.
+    Two fixes: install and test in the same step, or install into a virtual environment inside the workspace, which later steps can activate.
+    Lab 02 shows which of the two fixes its pipeline uses.
+    The same model applies on the Harness platform. Each step in a CI stage shares the workspace; tools installed elsewhere do not persist.
+    Ask the class: what happens to a file that the test step writes to /tmp?
+  </aside>
+</section>
+
+<section>
+  <h2>Background services</h2>
+  <div class="cols-60-40">
+<pre><code>- name: db
+  type: background
+  spec:
+    container: postgres:17-alpine
+    envs:
+      POSTGRES_PASSWORD: test
+- name: integration
+  type: run
+  spec:
+    container: python:3.12-slim
+    envs:
+      DATABASE_URL: postgresql://postgres:test@db:5432/postgres
+    script: pytest -m integration</code></pre>
+    <ul>
+      <li>A background step starts a service and keeps it running while the later steps run.</li>
+      <li>Later steps reach the service by the step name as host name: <code>db</code>.</li>
+      <li>The service stops when the stage ends.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    Integration tests need real dependencies: a database, a cache, a message queue. A background step provides one for the length of the stage.
+    Here the step called db starts Postgres 17. The integration test step connects to host db on port 5432.
+    The database starts empty on every execution, so the tests do not depend on data left by an earlier run.
+    The password is a throwaway value for a database that exists for two minutes, which is acceptable in a test pipeline. Day 2 covers real credentials.
+    The test step must wait until Postgres accepts connections, because the database takes a few seconds to start. Lab 03 adds that wait.
+  </aside>
+</section>
+
+<section>
+  <h2>Triggers and events</h2>
+  <table>
+    <tr><th>Event</th><th>When it happens</th><th>Default trigger</th></tr>
+    <tr><td>Pull request created or reopened</td><td>A pull request is opened or reopened</td><td>Yes</td></tr>
+    <tr><td>Pull request branch updated</td><td>New commits are pushed to the branch of an open pull request</td><td>Yes</td></tr>
+    <tr><td>Branch updated</td><td>Commits are pushed to a branch, such as <code>main</code></td><td>No. Add a trigger.</td></tr>
+    <tr><td>Tag created</td><td>A tag is pushed</td><td>No. Add a trigger.</td></tr>
+    <tr><td>Manual</td><td>Someone selects Run</td><td>Always available</td></tr>
+  </table>
+  <p>Lab 02 adds a branch-updated trigger so that every push runs the pipeline, including the merge commits on <code>main</code>.</p>
+  <aside class="notes">
+    When you create a pipeline in Harness Open Source it gets one trigger, called default, for pull request events.
+    That is a sensible default for continuous integration: every proposed change is checked before merge.
+    Pushes are not covered by default. After a pull request is merged, main has a new commit, and you usually want to build it too,
+    because the merged result can differ from the branch that was tested. Lab 02 adds that trigger.
+    Tag triggers are often used for releases. The Harness platform has the same event types, plus scheduled triggers and triggers from
+    artifact registries.
+  </aside>
+</section>
+
+<section>
+  <h2>Conditions and expressions</h2>
+  <div class="cols-60-40">
+<pre><code>- name: report
+  type: run
+  when: build.event == "pull_request"
+  spec:
+    container: alpine:3.20
+    script: |
+      echo "Run ${{ build.number }}"
+      echo "Commit ${{ build.commit }}"
+- name: notify
+  type: run
+  when: failure()
+  spec:
+    container: alpine:3.20
+    script: echo "An earlier step failed"</code></pre>
+    <ul>
+      <li><code>${{ … }}</code> inserts a value when the pipeline runs: the build number, commit, branch or event.</li>
+      <li><code>when:</code> decides at run time whether a step runs.</li>
+      <li><code>failure()</code> runs a step only after an earlier step failed. <code>always()</code> runs it in every case.</li>
+    </ul>
+  </div>
+  <aside class="notes">
+    Expressions let one pipeline file behave differently for different events.
+    build.number, build.commit, build.branch, build.event and build.target are among the values Harness Open Source provides.
+    Conditions are expressions that evaluate to true or false. Operators include ==, !=, and, or, not, matches, contains and startsWith.
+    A common use is to run tests on every event but deploy only for pushes to main. Lab 09 uses failure() to roll back a deployment
+    when a smoke test fails.
+    On the Harness platform the syntax is different, for example the expression &lt;+pipeline.sequenceId&gt;, but the idea is the same.
+    Source: Harness Open Source documentation, "Conditions" and "Expressions", developer.harness.io.
+  </aside>
+</section>
+
+<section>
+  <h2>Harness Open Source and the Harness platform</h2>
+  <table>
+    <tr><th>Concept</th><th>Harness Open Source (lab)</th><th>Harness platform (United)</th></tr>
+    <tr><td>Where steps run</td><td>Containers on your lab machine</td><td>Harness Cloud machines, or a delegate in the company network</td></tr>
+    <tr><td>Hierarchy</td><td>Project, then repositories</td><td>Account, organization, project</td></tr>
+    <tr><td>Pipeline storage</td><td><code>.harness/*.yaml</code> in the repository</td><td>In Harness, or in a Git repository</td></tr>
+    <tr><td>Expressions</td><td><code>${{ build.number }}</code></td><td><code>&lt;+pipeline.sequenceId&gt;</code></td></tr>
+    <tr><td>Deployments</td><td>Scripted in run steps</td><td>Deploy stages with services, environments and strategies</td></tr>
+  </table>
+  <aside class="notes">
+    Harness Open Source and the Harness platform share ideas and vocabulary but are different products.
+    The platform is a SaaS product with modules for CI, CD, feature flags, security testing and more.
+    Harness Open Source started as Gitness. It provides code hosting and CI pipelines that run on your own machine.
+    The concepts in the labs transfer to the platform: pipelines in YAML, stages and steps, triggers, conditions, secrets, branch rules
+    and status checks. The deployment features do not exist in Open Source, so Lab 09 writes the deployment steps by hand.
+    That has a teaching benefit: participants see what the platform's deployment features do for them.
+    Source: developer.harness.io, Harness Open Source overview and platform documentation.
+  </aside>
+</section>
+
+<section>
+  <h2>Harness platform building blocks</h2>
+  <svg class="diagram" viewBox="0 0 1136 340" role="img" aria-label="Harness platform connects to a delegate in the customer network that reaches EKS, ECS, Git and secrets">
+    <defs><marker id="arr-s32" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <rect x="0" y="40" width="380" height="270" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <g fill="#14263D"><text x="24" y="80" font-size="20" font-weight="700">Harness platform (SaaS)</text>
+      <g font-size="17" fill="#5C6B7B"><text x="24" y="122">Pipelines and executions</text><text x="24" y="156">Connectors</text>
+      <text x="24" y="190">Services and environments</text><text x="24" y="224">Secret references</text><text x="24" y="258">Approvals and policies</text></g></g>
+    <rect x="520" y="10" width="616" height="320" rx="8" fill="none" stroke="#9AA3A9" stroke-width="1.5" stroke-dasharray="8 6"/>
+    <text x="536" y="36" font-size="16" fill="#5C6B7B">Customer network</text>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="550" y="125" width="200" height="90" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+      <text x="650" y="162" font-size="20">Delegate</text><text x="650" y="190" font-size="16" fill="#5C6B7B">runs the tasks</text>
+      <rect x="850" y="50" width="260" height="52" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="980" y="82" font-size="18">Amazon EKS</text>
+      <rect x="850" y="116" width="260" height="52" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="980" y="148" font-size="18">Amazon ECS</text>
+      <rect x="850" y="182" width="260" height="52" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="980" y="214" font-size="18">Git and registries</text>
+      <rect x="850" y="248" width="260" height="52" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="980" y="280" font-size="18">Secrets store</text>
+    </g>
+    <line x1="548" y1="170" x2="385" y2="170" stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s32)"/>
+    <text x="466" y="160" font-size="15" fill="#5C6B7B" text-anchor="middle">outbound</text>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s32)">
+      <line x1="752" y1="160" x2="845" y2="78"/><line x1="752" y1="166" x2="845" y2="142"/><line x1="752" y1="176" x2="845" y2="208"/><line x1="752" y1="182" x2="845" y2="272"/>
+    </g>
+  </svg>
+  <p>A delegate connects out to Harness and runs tasks inside the network. Connectors tell it how to reach each system.</p>
+  <aside class="notes">
+    On the Harness platform the pipeline definitions, execution history and user interface are in Harness's cloud.
+    The work that touches company systems is done by a delegate: a small service that the company runs inside its own network or cluster.
+    The delegate opens an outbound connection to Harness and asks for tasks, so the company does not open inbound firewall ports.
+    Connectors are configuration objects: how to reach a Git server, a container registry, a Kubernetes cluster or a cloud account, and which credentials to use.
+    A Deploy stage combines a service (what you deploy), an environment (where), and an infrastructure definition (which cluster and namespace).
+    At United, deployments to Amazon EKS run in Harness. Day 3 maps each Lab 09 step to these objects.
+    Source: developer.harness.io, "Delegate overview" and "Connectors".
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 02: Your first CI pipeline</h2>
+  <p>90 minutes. Open <code>labs/02-first-ci-pipeline.md</code>.</p>
+  <ul>
+    <li>Run the tests in a container on your machine.</li>
+    <li>Write <code>.harness/ci.yaml</code> with lint, unit test and API test steps, and run it in Harness.</li>
+    <li>Read the logs of a failed run and fix the cause.</li>
+    <li>Add a trigger so that every push runs the pipeline.</li>
+  </ul>
+  <aside class="notes">
+    In this lab participants write the pipeline YAML themselves, step by step.
+    Point out that the first run of a new image is slow because Docker pulls it. Later runs reuse the image.
+    The lab contains a deliberate failure: a test breaks after a code change. Participants practise reading the log from the bottom up,
+    finding the failing assertion, and fixing the code rather than the test.
+    The lab also adds a report step that prints the build variables, and a short exercise where the lint step fails on an unused import.
+    Lunch is before this lab, so remind participants of the restart time.
+  </aside>
+</section>
+
+<!-- ============================ L4 Testing and quality gates ============================ -->
+
+<section>
+  <h2>The test pyramid</h2>
+  <svg class="diagram" viewBox="0 0 1136 330" role="img" aria-label="Test pyramid: many unit tests, fewer API and integration tests, few end-to-end tests">
+    <polygon points="380,10 280,110 480,110" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <polygon points="280,110 480,110 580,210 180,210" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/>
+    <polygon points="180,210 580,210 680,310 80,310" fill="#fff" stroke="#0033A0" stroke-width="2.5"/>
+    <g text-anchor="middle" fill="#14263D" font-size="19">
+      <text x="380" y="92">End-to-end</text><text x="380" y="168">API and integration</text><text x="380" y="268">Unit</text>
+    </g>
+    <g font-size="18" fill="#14263D">
+      <text x="740" y="66">Few tests, slow, cover the whole system</text>
+      <text x="740" y="166">Some tests, cover parts working together</text>
+      <text x="740" y="266">Many tests, fast, cover one piece of logic</text>
+    </g>
+    <g stroke="#C3CAD0" stroke-width="1.5"><line x1="500" y1="60" x2="728" y2="60"/><line x1="560" y1="160" x2="728" y2="160"/><line x1="660" y1="260" x2="728" y2="260"/></g>
+  </svg>
+  <p>Write many small, fast tests and a few slow, broad ones (Cohn, 2009; Vocke, 2018). Higher layers cost more to write, run and maintain.</p>
+  <aside class="notes">
+    Start with why tests are automated at all. If a team deploys once a quarter, a week of manual testing is possible.
+    If it deploys every day, every change needs the same checks in minutes, and only automation can do that.
+    Mike Cohn described the pyramid in 2009. The idea is about proportion. Unit tests check one function or class in milliseconds,
+    so you can have thousands. End-to-end tests drive the whole system and break when anything changes, so keep few of them for the main user paths.
+    When a team has mostly end-to-end tests, the pyramid is upside down, a pattern sometimes called the ice-cream cone, and the suite is slow and fragile.
+    Sources: Cohn, M. (2009), Succeeding with Agile, chapter 16; Vocke, H. (2018), "The Practical Test Pyramid", martinfowler.com.
+  </aside>
+</section>
+
+<section>
+  <h2>Three kinds of tests in the flight-status app</h2>
+  <table>
+    <tr><th>Test</th><th>What it checks</th><th>What it needs</th><th>Time per test</th></tr>
+    <tr><td>Unit</td><td>Rules for flight status changes, input validation</td><td>Only the code</td><td>Milliseconds</td></tr>
+    <tr><td>API</td><td>HTTP endpoints, status codes and JSON responses</td><td>The app with in-memory storage</td><td>Tens of milliseconds</td></tr>
+    <tr><td>Integration</td><td>Reading and writing flights in a database</td><td>A running Postgres</td><td>Up to seconds</td></tr>
+  </table>
+  <p>Lab 02 runs the unit and API tests. Lab 03 adds the integration tests, with Postgres as a background service.</p>
+  <aside class="notes">
+    Describe the sample application. It is a small flight-status service written in Python with FastAPI.
+    It stores flights with an origin, destination, departure time and status. Status changes follow rules: a flight can go from scheduled to boarding,
+    but not from arrived back to boarding. Those rules are pure logic and have unit tests.
+    The API tests start the application in the test process with an in-memory store and send HTTP requests to it.
+    The integration tests use a real Postgres database to check the SQL. They are slower and need a database, so they run only when one is available.
+    Ask: which of these tests would catch a typo in an SQL query? Only the integration tests.
+  </aside>
+</section>
+
+<section>
+  <h2>Test doubles</h2>
+  <table>
+    <tr><th>Double</th><th>What it does</th></tr>
+    <tr><td>Dummy</td><td>Fills a parameter that the test does not use.</td></tr>
+    <tr><td>Stub</td><td>Returns fixed answers to calls.</td></tr>
+    <tr><td>Spy</td><td>A stub that also records how it was called.</td></tr>
+    <tr><td>Mock</td><td>Fails the test if the expected calls did not happen.</td></tr>
+    <tr><td>Fake</td><td>A working but simpler implementation, such as an in-memory database.</td></tr>
+  </table>
+  <p>The flight-status API tests use a fake, an in-memory store, in place of Postgres (Meszaros, 2007).</p>
+  <aside class="notes">
+    A test double replaces a real dependency in a test, the way a stunt double replaces an actor.
+    Gerard Meszaros named the five kinds in xUnit Test Patterns. People often call all of them mocks, but the difference matters.
+    Stubs and fakes support state-based testing: you check the result. Mocks support behaviour-based testing: you check the calls.
+    Tests with many mocks break when the implementation changes, even if the behaviour is still correct.
+    The fake store in the sample app has the same interface as the Postgres store. That design makes the API tests fast,
+    and the integration tests check that the Postgres store behaves the same way.
+    Source: Meszaros, G. (2007), xUnit Test Patterns, chapter 11.
+  </aside>
+</section>
+
+<section>
+  <h2>Flaky tests</h2>
+  <ul>
+    <li>A flaky test passes and fails on the same code.</li>
+    <li>Common causes: timing and fixed waits, state shared between tests, test order, calls to external services.</li>
+    <li>At Google, about 1.5% of test runs reported a flaky result, and almost 16% of tests showed some flakiness (Micco, 2016).</li>
+    <li>Flaky tests teach people to ignore failures and re-run until the pipeline is green.</li>
+    <li>Fix or quarantine a flaky test as soon as you find it.</li>
+  </ul>
+  <aside class="notes">
+    A test suite is only useful if a failure means something. When failures are random, people stop reading them.
+    John Micco reported Google's numbers in 2016. With millions of test runs a day, a 1.5% flaky rate produces thousands of false failures daily.
+    In the labs, the integration tests could be flaky if they started before Postgres was ready. Lab 03 avoids this by waiting until the database accepts connections,
+    instead of sleeping for a fixed number of seconds.
+    Quarantine means moving the test out of the blocking suite, with a ticket to fix it, so it does not block everyone while it is broken.
+    Source: Micco, J. (2016), "Flaky Tests at Google and How We Mitigate Them", Google Testing Blog.
+  </aside>
+</section>
+
+<section>
+  <h2>What code coverage tells you</h2>
+<pre><code>def can_board(status):
+    return status in ("SCHEDULED", "DELAYED")
+
+def test_can_board():
+    can_board("SCHEDULED")      # runs the line, checks nothing</code></pre>
+  <ul>
+    <li>Coverage measures which lines ran during the tests. This test reaches 100% coverage of <code>can_board</code>.</li>
+    <li>Coverage does not measure whether the tests check the results.</li>
+    <li>In five large Java programs, coverage had a low to moderate correlation with fault detection once the number of tests was held constant (Inozemtseva and Holmes, 2014).</li>
+    <li>A coverage threshold is still useful as a floor that blocks large untested changes.</li>
+  </ul>
+  <aside class="notes">
+    Coverage tools record which lines execute during the test run. The test on the slide calls the function and asserts nothing,
+    yet the coverage report shows the function as fully covered.
+    Inozemtseva and Holmes used mutation testing: they inserted small faults into the programs and checked how many each test suite detected.
+    More tests detected more faults, but coverage on its own was not a strong predictor.
+    Use coverage to find code that no test runs at all. Do not treat a high number as proof of good tests.
+    In Lab 03 the pipeline fails if coverage drops below a threshold. The threshold blocks a pull request that adds code with no tests.
+    Source: Inozemtseva, L., and Holmes, R. (2014), "Coverage is not strongly correlated with test suite effectiveness", ICSE 2014.
+  </aside>
+</section>
+
+<section>
+  <h2>Static analysis and linting</h2>
+  <ul>
+    <li>Static analysis reads the code without running it.</li>
+    <li>Linters find unused imports, undefined names, risky patterns and style problems. The labs use ruff for Python.</li>
+    <li>Type checkers find values of the wrong type before the code runs.</li>
+    <li>Security analysis (SAST) finds patterns such as SQL built from user input.</li>
+    <li>These checks take seconds, so the pipeline runs them first.</li>
+  </ul>
+  <aside class="notes">
+    Static analysis complements tests. Tests check behaviour for the inputs someone thought of. Static analysis checks every line for known
+    categories of problems, whether or not a test reaches it.
+    Ruff is a Python linter and formatter. It checks hundreds of rules in well under a second for a project of this size.
+    Ordering matters in a pipeline. Put the fastest checks first, so a typo fails the pipeline in seconds instead of after a five-minute test run.
+    Security scanners for source code, dependencies and container images follow the same idea. Day 3 adds a container image scan.
+    Ask the class which static analysis tools their teams already use, for example SonarQube or a language linter.
+  </aside>
+</section>
+
+<section>
+  <h2>Finding problems earlier</h2>
+  <svg class="diagram" viewBox="0 0 1136 220" role="img" aria-label="Editor, commit hook, pull request pipeline, test environment, production, with time to find and who is affected">
+    <defs><marker id="arr-s40" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="20" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="100" y="66" font-size="19">Editor</text>
+      <rect x="234" y="20" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="334" y="66" font-size="19">Commit hook</text>
+      <rect x="468" y="20" width="200" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/><text x="568" y="54" font-size="19">Pull request</text><text x="568" y="80" font-size="19">pipeline</text>
+      <rect x="702" y="20" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="802" y="54" font-size="19">Test</text><text x="802" y="80" font-size="19">environment</text>
+      <rect x="936" y="20" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="1036" y="66" font-size="19">Production</text>
+      <g font-size="17" fill="#5C6B7B">
+        <text x="100" y="140">seconds</text><text x="334" y="140">seconds</text><text x="568" y="140">minutes</text><text x="802" y="140">hours to days</text><text x="1036" y="140">days or more</text>
+        <text x="100" y="170">you</text><text x="334" y="170">you</text><text x="568" y="170">you and reviewers</text><text x="802" y="170">testers</text><text x="1036" y="170">customers</text>
+      </g>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s40)">
+      <line x1="202" y1="60" x2="229" y2="60"/><line x1="436" y1="60" x2="463" y2="60"/><line x1="670" y1="60" x2="697" y2="60"/><line x1="904" y1="60" x2="931" y2="60"/>
+    </g>
+    <text x="0" y="210" font-size="16" fill="#5C6B7B">The two lines under each step show how long it takes to find a problem, and who is affected.</text>
+  </svg>
+  <p>"Shift left" means moving checks toward the start of this line. A problem found in the editor costs one person a few seconds. The same problem found in production affects customers.</p>
+  <aside class="notes">
+    The term shift left comes from drawing the delivery process from left to right, as on the slide.
+    The later a problem is found, the more people it affects and the more work has already been built on top of it.
+    You will hear claims that a bug costs a hundred times more in production. Those exact numbers are hard to trace to good evidence,
+    so do not quote them. The direction of the effect is not disputed.
+    Shift left does not mean removing later checks. It means adding fast, cheap checks early, so the later checks find less.
+    Today's lab works in the highlighted step: the pull request pipeline. Developers can run the same lint and tests locally before they push,
+    which moves the check one step further left.
+  </aside>
+</section>
+
+<section>
+  <h2>Quality gates on the main branch</h2>
+  <svg class="diagram" viewBox="0 0 1136 300" role="img" aria-label="Pull request pipeline result decides whether merge is allowed; direct pushes to main are rejected">
+    <defs><marker id="arr-s41" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5C6B7B"/></marker></defs>
+    <g text-anchor="middle" fill="#14263D">
+      <rect x="0" y="20" width="230" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="115" y="54" font-size="18">Feature branch</text><text x="115" y="80" font-size="16" fill="#5C6B7B">feature/departures</text>
+      <rect x="280" y="20" width="200" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="380" y="66" font-size="18">Pull request</text>
+      <rect x="530" y="20" width="230" height="80" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="645" y="54" font-size="18">Pipeline ci</text><text x="645" y="80" font-size="16" fill="#5C6B7B">lint, tests, coverage</text>
+      <rect x="810" y="20" width="326" height="80" rx="6" fill="#fff" stroke="#0033A0" stroke-width="2.5"/><text x="973" y="54" font-size="18">Required status check</text><text x="973" y="80" font-size="16" fill="#5C6B7B">ci must pass</text>
+      <rect x="810" y="150" width="155" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="887" y="182" font-size="17">Passes:</text><text x="887" y="206" font-size="17">merge allowed</text>
+      <rect x="981" y="150" width="155" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="1058" y="182" font-size="17">Fails:</text><text x="1058" y="206" font-size="17">merge blocked</text>
+      <rect x="0" y="190" width="230" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="115" y="234" font-size="18">Direct push to main</text>
+      <rect x="280" y="190" width="420" height="76" rx="6" fill="#F4F6F8" stroke="#C3CAD0" stroke-width="1.5"/><text x="490" y="234" font-size="18">Rejected by the branch rule</text>
+    </g>
+    <g stroke="#5C6B7B" stroke-width="1.8" marker-end="url(#arr-s41)">
+      <line x1="232" y1="60" x2="275" y2="60"/><line x1="482" y1="60" x2="525" y2="60"/><line x1="762" y1="60" x2="805" y2="60"/>
+      <line x1="930" y1="102" x2="895" y2="146"/><line x1="1016" y1="102" x2="1050" y2="146"/><line x1="232" y1="228" x2="275" y2="228"/>
+    </g>
+  </svg>
+  <ul>
+    <li>A branch rule on <code>main</code> blocks direct pushes and requires a pull request.</li>
+    <li>The rule names the <code>ci</code> status check. Merge is possible only after the latest run of <code>ci</code> passed.</li>
+  </ul>
+  <aside class="notes">
+    A quality gate is a condition a change must meet before it moves on. In Harness Open Source the gate for main is a branch rule.
+    The rule blocks direct pushes, so every change arrives through a pull request. It requires the status check named after the pipeline to succeed.
+    When the check fails, the merge button is disabled and the pull request shows which rule is not met. When the developer pushes a fix,
+    the pull request trigger runs the pipeline again, and the merge becomes possible after a green run.
+    Rules can also require approvals from reviewers or code owners. In Lab 03 participants work alone, so approval is a "Going further" task.
+    The Harness platform and other Git hosts offer the same kind of rule, sometimes called branch protection.
+  </aside>
+</section>
+
+<section>
+  <h2>Lab 03: Quality gates, pull requests and integration tests</h2>
+  <p>120 minutes. Open <code>labs/03-quality-gates.md</code>.</p>
+  <ul>
+    <li>Add integration tests with Postgres as a background step, and a coverage threshold.</li>
+    <li>Protect <code>main</code> with a branch rule and a required status check.</li>
+    <li>Add a departures board on a branch and open a pull request.</li>
+    <li>Fix what the tests and the pipeline find, then merge.</li>
+  </ul>
+  <aside class="notes">
+    This is the longest lab of the day. It brings together the branch rule, the pull request workflow, a background service and coverage.
+    Participants first see a direct push to main rejected, then make the change on a branch.
+    The new feature contains a sorting bug. The tests that participants add catch it on their own machine before they push.
+    After the fix, the pull request still fails: the pipeline's format check finds code that ruff would reformat.
+    Participants read the failure in the pull request, run the formatter, push again, and watch the check turn green.
+    Remind participants that the Postgres service takes a few seconds to start. The integration tests wait for it.
+    Fast finishers can add a second user as a reviewer and require an approval.
+  </aside>
+</section>
+
+<section>
+  <h2>Day 1 summary</h2>
+  <ul>
+    <li>DevOps aims at fast flow and fast feedback. The DORA metrics measure both.</li>
+    <li>Continuous integration means small changes merged into <code>main</code> every day, each checked by an automated build.</li>
+    <li>A pipeline is code. It is YAML in the repository, and each step runs in a container.</li>
+    <li>Tests at several levels, static analysis and branch rules form the quality gates for <code>main</code>.</li>
+    <li>Tomorrow covers infrastructure as code with Terraform, and how to handle credentials.</li>
+  </ul>
+  <aside class="notes">
+    Summarise the day and connect the pieces. The flight-status repository now has a pipeline that runs lint, unit, API and integration tests
+    on every pull request, and main is protected so that only tested changes reach it.
+    That is the commit stage and part of the acceptance stage of a deployment pipeline.
+    Ask participants for one thing they learned and one thing that was unclear. Note the unclear points and start Day 2 with them.
+    Remind everyone that the lab machine keeps its state overnight. If a lab is unfinished, the catch-up script can bring the machine to the start of Lab 04 tomorrow morning.
+  </aside>
+</section>
+
+<section>
+  <h2>References</h2>
+  <ul class="refs">
+    <li>Allspaw, J., and Hammond, P. (2009). 10+ Deploys per Day: Dev and Ops Cooperation at Flickr. Velocity Conference.</li>
+    <li>Bacchelli, A., and Bird, C. (2013). Expectations, outcomes, and challenges of modern code review. ICSE 2013.</li>
+    <li>Chacon, S., and Straub, B. (2014). <em>Pro Git</em>, 2nd ed. Apress. git-scm.com/book</li>
+    <li>Cohn, M. (2009). <em>Succeeding with Agile</em>. Addison-Wesley.</li>
+    <li>DORA (2024). <em>Accelerate State of DevOps Report</em>. Google Cloud. dora.dev</li>
+    <li>Driessen, V. (2010). A successful Git branching model. nvie.com</li>
+    <li>Forsgren, N., Humble, J., and Kim, G. (2018). <em>Accelerate</em>. IT Revolution.</li>
+    <li>Fowler, M. (2024). Continuous Integration. martinfowler.com/articles/continuousIntegration.html</li>
+    <li>Hammant, P. Trunk Based Development. trunkbaseddevelopment.com</li>
+    <li>Harness. Harness Open Source and platform documentation. developer.harness.io</li>
+    <li>Humble, J., and Farley, D. (2010). <em>Continuous Delivery</em>. Addison-Wesley.</li>
+    <li>Inozemtseva, L., and Holmes, R. (2014). Coverage is not strongly correlated with test suite effectiveness. ICSE 2014.</li>
+    <li>Kim, G., Humble, J., Debois, P., Willis, J., and Forsgren, N. (2021). <em>The DevOps Handbook</em>, 2nd ed. IT Revolution.</li>
+    <li>Little, J. D. C. (1961). A proof for the queuing formula L = λW. <em>Operations Research</em> 9(3).</li>
+    <li>Meszaros, G. (2007). <em>xUnit Test Patterns</em>. Addison-Wesley.</li>
+    <li>Micco, J. (2016). Flaky Tests at Google and How We Mitigate Them. Google Testing Blog.</li>
+    <li>Vocke, H. (2018). The Practical Test Pyramid. martinfowler.com</li>
+    <li>Wiggins, A. (2011). The Twelve-Factor App. 12factor.net</li>
+  </ul>
+  <aside class="notes">
+    These are the sources cited today. Point participants to Accelerate and to Fowler's article on continuous integration if they want to read one thing.
+    The DevOps Handbook is the most practical of the books. The Harness documentation covers both Harness Open Source and the platform.
+    Also recommend Pro Git by Scott Chacon and Ben Straub, free at git-scm.com/book, for anyone who wants a deeper understanding of Git.
+  </aside>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280, height: 720, margin: 0, center: false, hash: true,
+    controls: false, progress: false, transition: 'none', backgroundTransition: 'none',
+    slideNumber: 'c', showSlideNumber: 'all', pdfSeparateFragments: false,
+    plugins: [ RevealNotes ]
+  });
+</script>
+</body>
+</html>
