@@ -2,7 +2,7 @@
 
 In this lab you package the flight status service as a container image. You write a Dockerfile, build the image, run it and look at its layers. You push the image to the local registry, scan it for known vulnerabilities, and produce a software bill of materials (SBOM). Then you run the service together with PostgreSQL using Docker Compose. Finally, you describe the same container as an Amazon ECS task definition, the format that AWS Fargate runs. Lab 08 deploys the image you build here to Kubernetes.
 
-**Time:** 75 minutes · **Lecture:** L9 Containers and L10 Compose, ECS task definitions and Fargate · **You need:** Lab 06 (or: run `~/devops-demos/scripts/catch-up.sh 07` on a fresh machine)
+**Lecture:** L9 Containers and L10 Compose, ECS task definitions and Fargate · **You need:** Lab 06 (or: run `~/devops-demos/scripts/catch-up.sh 07` on a fresh machine)
 
 ## Goals
 
@@ -39,7 +39,7 @@ k3d-devops-server-0   Ready    control-plane   1d    v1.35.5+k3s1
 
 `git status --short` prints nothing when you have no uncommitted changes. If it lists files, commit or discard them before you continue.
 
-## Part 1: Install Trivy (about 5 minutes)
+## Part 1: Install Trivy
 
 ### 1.1 Download Trivy 0.75.0 and check its checksum
 
@@ -84,7 +84,7 @@ Version: 0.75.0
 trivy --version | grep -q "0.75.0"
 -->
 
-## Part 2: Write the Dockerfile (about 15 minutes)
+## Part 2: Write the Dockerfile
 
 ### 2.1 Create a branch
 
@@ -197,7 +197,7 @@ Before you build, decide which layers Docker rebuilds in each case:
 
 </details>
 
-## Part 3: Build, run and inspect the image (about 13 minutes)
+## Part 3: Build, run and inspect the image
 
 ### 3.1 Build the image
 
@@ -312,7 +312,7 @@ In the build output, look for lines like these:
 
 The dependency layer is `CACHED`, so the build takes seconds instead of the time pip needs to download and install the packages. A pipeline that builds on every commit benefits from the same order of instructions.
 
-## Part 4: Push the image to the registry (about 7 minutes)
+## Part 4: Push the image to the registry
 
 ### 4.1 Tag the image for the local registry
 
@@ -366,7 +366,7 @@ Docker-Content-Digest: sha256:4b8e0c...
 
 `docker pull k3d-registry.localhost:5000/flight-status@sha256:<digest>` always returns this exact image, even if someone moves the `1.0.0` tag. In Lab 09 the pipeline tags each image with the commit it was built from. That tag is unique per build, so it is never moved, and it tells you which source code is inside the image.
 
-## Part 5: Scan the image (about 12 minutes)
+## Part 5: Scan the image
 
 ### 5.1 Scan for high and critical vulnerabilities
 
@@ -429,7 +429,7 @@ These are the versions pinned in `requirements.txt`, plus the packages they depe
 grep -q 'pkg:pypi/fastapi@0.162.0' ~/flight-status-1.0.0.cdx.json
 -->
 
-## Part 6: Run the service with a database using Compose (about 10 minutes)
+## Part 6: Run the service with a database using Compose
 
 ### 6.1 The Compose file
 
@@ -557,7 +557,7 @@ docker volume ls | grep db-data || echo "The db-data volume is gone."
 test -z "$(docker compose ps -q)"
 -->
 
-## Part 7: Describe the container as an Amazon ECS task (about 8 minutes)
+## Part 7: Describe the container as an Amazon ECS task
 
 ### 7.1 From Compose to a task definition
 
@@ -700,7 +700,7 @@ In an AWS account you would register this file with `aws ecs register-task-defin
 jq -e '.cpu == "512" and .memory == "1024" and .containerDefinitions[0].secrets[0].name == "DATABASE_URL"' ecs/taskdef.json > /dev/null
 -->
 
-## Part 8: Commit and merge (about 5 minutes)
+## Part 8: Commit and merge
 
 ### 8.1 Commit and push the branch
 

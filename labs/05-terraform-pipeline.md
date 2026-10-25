@@ -6,7 +6,7 @@ In this lab you move the state into the cluster, give the pipeline its own crede
 The pipeline checks and plans every pull request, and applies the change after the pull request is merged.
 You then change the infrastructure through a pull request, and use the pipeline to detect drift.
 
-**Time:** 75 minutes · **Lecture:** L7 Infrastructure as code in pipelines · **You need:** Lab 04 completed (or run `~/devops-demos/scripts/catch-up.sh 05` on a fresh machine)
+**Lecture:** L7 Infrastructure as code in pipelines · **You need:** Lab 04 completed (or run `~/devops-demos/scripts/catch-up.sh 05` on a fresh machine)
 
 ## Goals
 
@@ -44,7 +44,7 @@ module.postgres["prod"].random_password.db
 4f6c2d1 Platform: k3d cluster, namespaces, quotas and databases
 ```
 
-## Part 1: Why the state must move (about 10 minutes)
+## Part 1: Why the state must move
 
 ### 1.1 The problems with a local state file
 
@@ -166,7 +166,7 @@ yes
 The answer `yes` confirms the binding.
 `DATA 3` on the Secret means Kubernetes added the token, the CA certificate and the namespace.
 
-## Part 2: Move the state into the cluster (about 10 minutes)
+## Part 2: Move the state into the cluster
 
 ### 2.1 Configure the backend
 
@@ -286,7 +286,7 @@ git commit -m "Store Terraform state in the cluster"
 git push
 ```
 
-## Part 3: A credential for the pipeline (about 10 minutes)
+## Part 3: A credential for the pipeline
 
 ### 3.1 Why the pipeline gets its own credential
 
@@ -385,7 +385,7 @@ Enter the name `platform_kubeconfig`, paste the file content as the value, and s
 In the Harness platform, a Kubernetes cluster connector holds this kind of credential, and the platform also offers external secret managers.
 The pipeline refers to the connector instead of a pasted kubeconfig.
 
-## Part 4: The infrastructure pipeline (about 15 minutes)
+## Part 4: The infrastructure pipeline
 
 ### 4.1 Write the pipeline
 
@@ -499,7 +499,7 @@ No changes. Your infrastructure matches the configuration.
 The pipeline read the state from the cluster with its own credential, and found the infrastructure up to date.
 The `apply` step shows as skipped. The event of this run is `manual`, and the step runs only for `push`.
 
-## Part 5: Change infrastructure through a pull request (about 15 minutes)
+## Part 5: Change infrastructure through a pull request
 
 The development team needs more pods in dev.
 You raise the dev pod quota from 10 to 12 through a pull request, so a reviewer sees the exact change before it reaches the cluster.
@@ -633,7 +633,7 @@ The change went from your machine to the cluster without anyone running `terrafo
 The code review included the plan, and the apply used the pipeline's credential.
 In the Harness platform, the same flow uses Terraform Plan and Terraform Apply steps, often with an Approval step between them.
 
-## Part 6: Detect drift (about 10 minutes)
+## Part 6: Detect drift
 
 ### 6.1 Change the quota by hand
 
@@ -694,7 +694,7 @@ test "$(kubectl -n flightops-dev get resourcequota quota -o jsonpath='{.spec.har
 
 In a team, you would usually re-run the pipeline on `main` with apply enabled, so the correction is recorded in the pipeline history too.
 
-## Part 7: How locking works (about 5 minutes)
+## Part 7: How locking works
 
 Every Terraform command that can change the state first takes the lock.
 For this backend, the lock is the Lease `lock-tfstate-default-platform`.

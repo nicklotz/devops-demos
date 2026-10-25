@@ -27,7 +27,7 @@
   <div class="t-meta">Nick Lotz<br>27–29 October 2026</div>
   <aside class="notes">
     Welcome everyone. Introduce yourself and your background in DevOps and in teaching.
-    Explain that this is a three-day, hands-on course. Each day has about two hours of lecture and four and a half hours of lab work.
+    Explain that this is a three-day, hands-on course. 
     Today is about continuous integration: how code moves from a developer's machine into a shared main branch, and how automated
     pipelines check every change. By the end of the day every participant will have their own Harness Open Source installation,
     a repository with a small Python service, and a pipeline that tests every pull request.
@@ -40,14 +40,12 @@
   <h2>About this course</h2>
   <ul>
     <li>Instructor: Nick Lotz.</li>
-    <li>Hours: 09:00 to 17:00 US Central, with two 10-minute breaks and a 45-minute lunch.</li>
     <li>About 30% of the time is lecture. About 70% is hands-on lab work.</li>
     <li>Each lecture prepares you for the lab that follows it.</li>
     <li>Ask questions at any time, by voice or in the chat.</li>
   </ul>
   <aside class="notes">
-    Cover the logistics. The day runs from nine to five Central time. There is a short break mid-morning, lunch around noon,
-    and a short break mid-afternoon. The exact times are on the schedule slide that follows.
+    Cover the logistics.   The exact times are on the schedule slide that follows.
     The course follows Pluralsight's ratio of roughly thirty percent lecture and seventy percent hands-on work.
     The lectures focus on concepts and the reasons behind the practices. The labs apply those concepts with real tools.
     Encourage questions at any point. If a question needs a longer answer, park it and come back during a lab.
@@ -75,33 +73,23 @@
 </section>
 
 <section>
-  <h2>Today's schedule</h2>
-  <div class="cols">
-    <table class="compact">
-      <tr><th>Time</th><th>Session</th></tr>
-      <tr><td>09:00</td><td>Welcome and course overview</td></tr>
-      <tr><td>09:20</td><td>DevOps foundations</td></tr>
-      <tr><td>09:50</td><td>Version control and continuous integration</td></tr>
-      <tr><td>10:20</td><td>Break</td></tr>
-      <tr><td>10:30</td><td>Lab 01: Lab environment and Harness Open Source</td></tr>
-      <tr><td>11:30</td><td>Pipelines and Harness</td></tr>
-    </table>
-    <table class="compact">
-      <tr><th>Time</th><th>Session</th></tr>
-      <tr><td>12:00</td><td>Lunch</td></tr>
-      <tr><td>12:45</td><td>Lab 02: Your first CI pipeline</td></tr>
-      <tr><td>14:15</td><td>Break</td></tr>
-      <tr><td>14:25</td><td>Testing and quality gates</td></tr>
-      <tr><td>14:55</td><td>Lab 03: Quality gates, pull requests and integration tests</td></tr>
-      <tr><td>16:55</td><td>Summary and questions</td></tr>
-    </table>
-  </div>
-  <p>All times are US Central.</p>
+  <h2>Today's sessions</h2>
+  <ol>
+    <li>Welcome and course overview</li>
+    <li>Lecture: DevOps foundations</li>
+    <li>Lecture: Version control and continuous integration</li>
+    <li>Lab 01: Lab environment and Harness Open Source</li>
+    <li>Lecture: Pipelines and Harness</li>
+    <li>Lab 02: Your first CI pipeline</li>
+    <li>Lecture: Testing and quality gates</li>
+    <li>Lab 03: Quality gates, pull requests and integration tests</li>
+    <li>Summary and questions</li>
+  </ol>
   <aside class="notes">
-    Show the plan for the day. Four lectures of about thirty minutes each, and three labs of one hour, ninety minutes and two hours.
+    Show the plan for the day. 
     Lab 01 sets up the machine and Harness Open Source. Lab 02 writes the first pipeline. Lab 03 adds branch protection,
     pull requests, integration tests with a real database, and a coverage threshold.
-    If the class runs ahead or behind, adjust the break times rather than cutting lab time.
+    
     The labs are the main part of the course, and people learn most when they have enough time to finish them and read the explanations.
   </aside>
 </section>
@@ -570,7 +558,7 @@
 
 <section>
   <h2>Lab 01: Lab environment and Harness Open Source</h2>
-  <p>60 minutes. Open <code>labs/01-lab-environment.md</code> in the course repository.</p>
+  <p>Open <code>labs/01-lab-environment.md</code> in the course repository.</p>
   <ul>
     <li>Install git, curl, jq, Docker and VS Code on your lab machine.</li>
     <li>Start Harness Open Source in a Docker container.</li>
@@ -902,7 +890,7 @@ spec:
 
 <section>
   <h2>Lab 02: Your first CI pipeline</h2>
-  <p>90 minutes. Open <code>labs/02-first-ci-pipeline.md</code>.</p>
+  <p>Open <code>labs/02-first-ci-pipeline.md</code>.</p>
   <ul>
     <li>Run the tests in a container on your machine.</li>
     <li>Write <code>.harness/ci.yaml</code> with lint, unit test and API test steps, and run it in Harness.</li>
@@ -915,7 +903,7 @@ spec:
     The lab contains a deliberate failure: a test breaks after a code change. Participants practise reading the log from the bottom up,
     finding the failing assertion, and fixing the code rather than the test.
     The lab also adds a report step that prints the build variables, and a short exercise where the lint step fails on an unused import.
-    Lunch is before this lab, so remind participants of the restart time.
+    
   </aside>
 </section>
 
@@ -1118,7 +1106,7 @@ def test_can_board():
 
 <section>
   <h2>Lab 03: Quality gates, pull requests and integration tests</h2>
-  <p>120 minutes. Open <code>labs/03-quality-gates.md</code>.</p>
+  <p>Open <code>labs/03-quality-gates.md</code>.</p>
   <ul>
     <li>Add integration tests with Postgres as a background step, and a coverage threshold.</li>
     <li>Protect <code>main</code> with a branch rule and a required status check.</li>

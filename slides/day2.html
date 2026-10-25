@@ -30,7 +30,7 @@
     Welcome back to Day 2. Yesterday was about continuous integration: getting code changes tested and merged safely.
     Today moves one layer down, to the infrastructure the application runs on, and to the credentials that pipelines and
     applications need. The morning covers infrastructure as code as a set of ideas, then Terraform and the AWS tools United
-    uses, CloudFormation and the CDK. After lunch we run Terraform from a pipeline, and the last block is credential management.
+    uses, CloudFormation and the CDK. Then we run Terraform from a pipeline, and the last block is credential management.
     Each lecture is followed by a lab that applies it on your lab machine. Before we start, check that your lab machine is
     running and that Harness Open Source still opens on localhost:3000.
   </aside>
@@ -46,7 +46,7 @@
   </ul>
   <p>Today you create the infrastructure the application will run on, and you manage the credentials it needs.</p>
   <aside class="notes">
-    Spend two or three minutes here. Ask who finished Lab 03 and who did not. Anyone who did not finish can run
+     Ask who finished Lab 03 and who did not. Anyone who did not finish can run
     scripts/catch-up.sh 04 from the course repository during the first lecture. The script brings a lab machine to the
     starting state of Lab 04, so nobody is blocked by yesterday. Ask one or two people what surprised them yesterday. Common
     answers are that each pipeline step runs in its own container, and that the branch rule blocked even the administrator.
@@ -57,26 +57,21 @@
 
 <section>
   <h2>Day 2 agenda</h2>
-  <table class="compact">
-    <tr><th>Time (US Central)</th><th>Session</th></tr>
-    <tr><td>09:00</td><td>Day 1 recap</td></tr>
-    <tr><td>09:10</td><td>Lecture: Infrastructure as code concepts</td></tr>
-    <tr><td>09:40</td><td>Lecture: Terraform, CloudFormation and the AWS CDK</td></tr>
-    <tr><td>10:10</td><td>Break</td></tr>
-    <tr><td>10:20</td><td>Lab 04: Terraform foundations on Kubernetes (120 minutes)</td></tr>
-    <tr><td>12:20</td><td>Lunch</td></tr>
-    <tr><td>13:05</td><td>Lecture: Infrastructure as code in pipelines</td></tr>
-    <tr><td>13:35</td><td>Lab 05: Terraform in the pipeline (75 minutes)</td></tr>
-    <tr><td>14:50</td><td>Break</td></tr>
-    <tr><td>15:00</td><td>Lecture: Credential management</td></tr>
-    <tr><td>15:35</td><td>Lab 06: Managing credentials (75 minutes)</td></tr>
-    <tr><td>16:50</td><td>Summary and questions</td></tr>
-  </table>
+  <ol>
+    <li>Day 1 recap</li>
+    <li>Lecture: Infrastructure as code concepts</li>
+    <li>Lecture: Terraform, CloudFormation and the AWS CDK</li>
+    <li>Lab 04: Terraform foundations on Kubernetes</li>
+    <li>Lecture: Infrastructure as code in pipelines</li>
+    <li>Lab 05: Terraform in the pipeline</li>
+    <li>Lecture: Credential management</li>
+    <li>Lab 06: Managing credentials</li>
+    <li>Summary and questions</li>
+  </ol>
   <aside class="notes">
-    The day has the same rhythm as yesterday: a short lecture, then a lab that uses it. Lab 04 is the longest lab of the
-    course at two hours, because it installs the Kubernetes tools and introduces Terraform from zero. Lab 05 and Lab 06 build
+    The day has the same rhythm as yesterday: a short lecture, then a lab that uses it. Lab 04 is the longest lab of the course, because it installs the Kubernetes tools and introduces Terraform from zero. Lab 05 and Lab 06 build
     on the Lab 04 results, so keep your cluster and your Terraform folder. If you fall behind, the catch-up script exists
-    for each lab. Remind people of the break times and that the labs have "Going further" sections for those who finish early.
+    for each lab. Remind people that the labs have "Going further" sections for those who finish early.
   </aside>
 </section>
 
@@ -624,7 +619,7 @@ variable "namespace" {
 
 <section>
   <h2>Lab 04: Terraform foundations on Kubernetes</h2>
-  <p>120 minutes. Open <code>labs/04-terraform-foundations.md</code> in the course repository.</p>
+  <p>Open <code>labs/04-terraform-foundations.md</code> in the course repository.</p>
   <ul>
     <li>Install k3d, kubectl and Terraform, and create the local Kubernetes cluster.</li>
     <li>Write Terraform for dev and prod namespaces with quotas and default limits.</li>
@@ -632,11 +627,11 @@ variable "namespace" {
     <li>Add a Postgres database per environment with a module, and push the code to Harness.</li>
   </ul>
   <aside class="notes">
-    This is the longest lab of the course. The first 20 to 30 minutes install tools and create the cluster; read the
+    This is the longest lab of the course. The first part installs tools and creates the cluster; read the
     explanation of each install step, because the same tools come back on Day 3. The Kubernetes cluster stands in for Amazon
     EKS. You do not need to know Kubernetes in depth yet; the lab explains each object you create, and Day 3 covers
     Kubernetes properly. If you finish early, try the "Going further" tasks. Anyone who did not finish Lab 03 can run
-    scripts/catch-up.sh 04 first. We meet again after lunch at 13:05.
+    scripts/catch-up.sh 04 first. 
   </aside>
 </section>
 
@@ -846,7 +841,7 @@ exit "$rc"</code></pre>
 
 <section>
   <h2>Lab 05: Terraform in the pipeline</h2>
-  <p>75 minutes. Open <code>labs/05-terraform-pipeline.md</code> in the course repository.</p>
+  <p>Open <code>labs/05-terraform-pipeline.md</code> in the course repository.</p>
   <ul>
     <li>Move the Terraform state to the Kubernetes backend.</li>
     <li>Store a cluster credential for the pipeline as a Harness secret.</li>
@@ -1174,7 +1169,7 @@ S3cr3t-Value</code></pre>
 
 <section>
   <h2>Lab 06: Managing credentials</h2>
-  <p>75 minutes. Open <code>labs/06-credentials.md</code> in the course repository.</p>
+  <p>Open <code>labs/06-credentials.md</code> in the course repository.</p>
   <ul>
     <li>Find credentials on disk and in Terraform state, and decode a Kubernetes Secret.</li>
     <li>Store a secret in Harness and see that Harness Open Source does not mask it in logs.</li>
@@ -1201,7 +1196,7 @@ S3cr3t-Value</code></pre>
   </ul>
   <p>Day 3 covers containers, Kubernetes deployments and an end-to-end delivery pipeline.</p>
   <aside class="notes">
-    Summarise in two minutes and leave time for questions. Ask the class to name one change they would make in their own
+    Summarise briefly and leave time for questions. Ask the class to name one change they would make in their own
     team's workflow based on today, for example reviewing plans in pull requests or removing a long-lived token from a
     pipeline. Tomorrow starts with containers: how an image is built from layers, how to scan it, and how a Compose file maps
     to an ECS task definition. Then Kubernetes rollouts and rollbacks, and finally one pipeline that tests, builds, scans and

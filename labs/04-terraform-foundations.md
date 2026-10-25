@@ -5,7 +5,7 @@ You create a local Kubernetes cluster with k3d. Then you describe two environmen
 You watch Terraform plan and apply changes, look at the state it keeps, and see it correct a change that someone made by hand.
 At the end, the Terraform code goes into its own Git repository in Harness.
 
-**Time:** 120 minutes · **Lecture:** L5 Infrastructure as code concepts and L6 Terraform architecture · **You need:** Lab 03 completed (or run `~/devops-demos/scripts/catch-up.sh 04` on a fresh machine)
+**Lecture:** L5 Infrastructure as code concepts and L6 Terraform architecture · **You need:** Lab 03 completed (or run `~/devops-demos/scripts/catch-up.sh 04` on a fresh machine)
 
 ## Goals
 
@@ -41,7 +41,7 @@ In this lab you create files in a new folder, `~/platform`.
 When a step shows a file with its path, create that file in VS Code and paste the content.
 If you do not use VS Code, the Text Editor app works too.
 
-## Part 1: Install k3d, kubectl and Terraform (about 20 minutes)
+## Part 1: Install k3d, kubectl and Terraform
 
 Today's tools come from three places.
 k3d comes from its GitHub release page.
@@ -160,7 +160,7 @@ kubectl version --client | grep -q 'v1.35'
 terraform version | grep -q 'v1.17.0'
 -->
 
-## Part 2: Create the registry and the cluster (about 20 minutes)
+## Part 2: Create the registry and the cluster
 
 ### 2.1 Create a local image registry
 
@@ -335,7 +335,7 @@ kubectl get pods --all-namespaces
 
 The `kube-system` namespace holds k3s's own components: DNS (CoreDNS), the Traefik ingress controller, the local-path storage provisioner and metrics-server.
 
-## Part 3: Your first Terraform configuration (about 25 minutes)
+## Part 3: Your first Terraform configuration
 
 ### 3.1 Tell Terraform where the cluster is
 
@@ -645,7 +645,7 @@ Remove the demo namespace:
 kubectl delete namespace demo
 ```
 
-## Part 4: Resource limits and drift (about 20 minutes)
+## Part 4: Resource limits and drift
 
 ### 4.1 Add a quota and default limits
 
@@ -816,7 +816,7 @@ In Lab 05, a pipeline runs Terraform on every change and shows you drift in its 
 
 If the manual change was right, the fix is to change the code (the variable) and apply, so that code and cluster agree again.
 
-## Part 5: A database module (about 25 minutes)
+## Part 5: A database module
 
 ### 5.1 Why a module
 
@@ -1209,7 +1209,7 @@ The Secret needs the password and the namespace.
 The Deployment needs the Secret and the storage claim.
 You did not write this order anywhere. Terraform derived it from the references in the code (the dependency graph from the lecture).
 
-## Part 6: Put the platform code in Git (about 10 minutes)
+## Part 6: Put the platform code in Git
 
 Infrastructure code needs the same treatment as application code: version history, review, and a pipeline.
 You start with version history.

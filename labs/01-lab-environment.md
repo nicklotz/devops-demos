@@ -2,7 +2,7 @@
 
 In this lab you prepare your lab machine for the whole course. You install the command-line tools, Docker, and Harness Open Source, a self-hosted platform for Git repositories and pipelines. You then create a project and a repository in Harness and push the sample application that you will test, package and deploy over the next three days. By the end of the lab, your code is in a shared repository. Every change from Lab 02 onward goes through that repository.
 
-**Time:** 60 minutes · **Lecture:** L1 DevOps foundations and L2 Version control and continuous integration · **You need:** a fresh lab machine. Nothing else.
+**Lecture:** L1 DevOps foundations and L2 Version control and continuous integration · **You need:** a fresh lab machine. Nothing else.
 
 ## Goals
 
@@ -28,7 +28,7 @@ sudo true && echo "sudo works"
 
 You should see your user name and `sudo works`.
 
-## Part 1: Look at your lab machine (about 5 minutes)
+## Part 1: Look at your lab machine
 
 ### 1.1 Check the operating system and resources
 
@@ -59,7 +59,7 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/sda1        78G  7.1G   71G  10% /
 ```
 
-## Part 2: Install the base tools (about 10 minutes)
+## Part 2: Install the base tools
 
 ### 2.1 Install git, curl and jq
 
@@ -149,7 +149,7 @@ cat ~/.config/Code/User/settings.json
 
 You should see `"files.insertFinalNewline": true` in the output. The Text Editor app adds the final line break by itself.
 
-## Part 3: Install Docker (about 15 minutes)
+## Part 3: Install Docker
 
 ### 3.1 Add Docker's repository and install Docker Engine
 
@@ -229,7 +229,7 @@ docker info --format '{{.ServerVersion}}' | grep -q '^29\.'
 docker info 2>/dev/null | grep -q 'k3d-registry.localhost:5000'
 -->
 
-## Part 4: Run Harness Open Source (about 10 minutes)
+## Part 4: Run Harness Open Source
 
 ### 4.1 Create a network for the course containers
 
@@ -323,7 +323,7 @@ Open http://localhost:3000 in the browser on your lab machine. Sign in with:
 
 Take a minute to look around. In Harness Open Source, a **project** groups repositories, pipelines and secrets. The Harness platform that United uses has the same idea with more levels: an **account** contains **organizations**, and each organization contains **projects**. In both products, pipelines, secrets and access rights belong to a project.
 
-## Part 5: Create a project and a repository (about 5 minutes)
+## Part 5: Create a project and a repository
 
 ### 5.1 Create the project
 
@@ -349,7 +349,7 @@ Harness shows the empty repository with instructions and its clone URL, `http://
 h_api GET /api/v1/repos/flightops%2Fflight-status | jq -e '.default_branch == "main"' >/dev/null
 -->
 
-## Part 6: Push the starter application (about 15 minutes)
+## Part 6: Push the starter application
 
 ### 6.1 Get the course files
 
@@ -401,7 +401,7 @@ You should see these files (the order can differ):
 
 ### 6.3 Read the application
 
-You test, package and deploy this service for three days. Spend five minutes on its structure now.
+You test, package and deploy this service for three days. Look at its structure now.
 
 ```bash
 cat README.md

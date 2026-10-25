@@ -2,7 +2,7 @@
 
 In this lab you deploy the flight status image from Lab 07 to the `flightops-dev` namespace that Terraform created in Lab 04. You write the Kubernetes manifests yourself: a Deployment, a Service and an Ingress, plus a Kustomize overlay for the dev environment. You watch Kubernetes replace a pod you delete, run into the namespace quota when you scale up, and roll out a new version without downtime. Then you break the deployment in three different ways, read the symptoms, and recover. This lab puts lecture L11 into practice. Lab 09 automates the same deployment in a pipeline.
 
-**Time:** 90 minutes · **Lecture:** L11 Kubernetes · **You need:** Lab 07 (or: run `~/devops-demos/scripts/catch-up.sh 08` on a fresh machine)
+**Lecture:** L11 Kubernetes · **You need:** Lab 07 (or: run `~/devops-demos/scripts/catch-up.sh 08` on a fresh machine)
 
 ## Goals
 
@@ -39,7 +39,7 @@ flight-status-db   Opaque   4      1d
 
 The Secret `flight-status-db` holds the database connection settings, including the password that Terraform generated. Your manifests refer to this Secret by name. The password never appears in the repository.
 
-## Part 1: Write the manifests (about 20 minutes)
+## Part 1: Write the manifests
 
 ### 1.1 Create a branch and the folders
 
@@ -264,7 +264,7 @@ kubectl kustomize k8s/dev | grep -q "image: k3d-registry.localhost:5000/flight-s
 kubectl kustomize k8s/dev | grep -q "host: flights-dev.localhost"
 -->
 
-## Part 2: Deploy to dev (about 10 minutes)
+## Part 2: Deploy to dev
 
 ### 2.1 Apply the overlay
 
@@ -347,7 +347,7 @@ Open http://flights-dev.localhost:8080 in the browser. The page lists the flight
 
 <!-- ui: browse http://flights-dev.localhost:8080 -->
 
-## Part 3: Self-healing, scaling and the quota (about 10 minutes)
+## Part 3: Self-healing, scaling and the quota
 
 ### 3.1 Delete a pod
 
@@ -425,7 +425,7 @@ kubectl -n flightops-dev get pods -l app=flight-status
 
 `kubectl scale` is an imperative change. The file in Git still says `replicas: 2`. If you had left 4 replicas running, the cluster would have drifted from Git, as the namespace quota drifted from Terraform in Lab 04. The next `kubectl apply -k` would set 2 again. In a GitOps setup, a controller in the cluster would undo such a change by itself.
 
-## Part 4: Roll out version 1.1.0 (about 12 minutes)
+## Part 4: Roll out version 1.1.0
 
 ### 4.1 Build and push version 1.1.0
 
@@ -525,7 +525,7 @@ The old ReplicaSet still exists with 0 pods. Kubernetes keeps it for a rollback.
 curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
 -->
 
-## Part 5: Failure 1, an image that does not exist (about 8 minutes)
+## Part 5: Failure 1, an image that does not exist
 
 ### 5.1 Deploy a tag that was never pushed
 
@@ -587,7 +587,7 @@ curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' 
 test "$(kubectl -n flightops-dev get deployment flight-status -o jsonpath='{.status.readyReplicas}')" = "2"
 -->
 
-## Part 6: Failure 2, a wrong database password (about 10 minutes)
+## Part 6: Failure 2, a wrong database password
 
 ### 6.1 Deploy a bad configuration
 
@@ -645,7 +645,7 @@ kubectl -n flightops-dev get deployment flight-status -o jsonpath='{.spec.templa
 
 The last command prints `flight-status-db`. The rollback restored the reference to the Secret.
 
-## Part 7: Failure 3, the database goes away (about 10 minutes)
+## Part 7: Failure 3, the database goes away
 
 ### 7.1 Stop the database
 
@@ -719,7 +719,7 @@ curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' 
 
 In the first two cases, the rolling update strategy and the readiness probe protected the users. In the third case, no deployment happened. The cause was outside the pods, and the readiness probe stopped traffic to pods that could not serve it.
 
-## Part 8: k3d and Amazon EKS (about 5 minutes)
+## Part 8: k3d and Amazon EKS
 
 At United, applications run on Amazon EKS. Everything you used in this lab is the standard Kubernetes API, so the manifests and the kubectl commands work the same way on EKS. The table shows what differs.
 
@@ -735,7 +735,7 @@ At United, applications run on Amazon EKS. Everything you used in this lab is th
 
 At United, the Harness platform deploys to EKS. A Harness Kubernetes rolling deployment applies the manifests, waits for the rollout like `kubectl rollout status`, and runs rollback steps when it fails. Lab 09 builds the same behaviour into the pipeline.
 
-## Part 9: Commit and merge (about 5 minutes)
+## Part 9: Commit and merge
 
 ### 9.1 Commit and push the branch
 

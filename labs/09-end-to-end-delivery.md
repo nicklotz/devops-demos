@@ -2,7 +2,7 @@
 
 In this lab you turn the `ci` pipeline into a delivery pipeline. Every run lints and tests the code, builds the container image and scans it. Runs for changes merged to `main` also deploy the image to dev, check the deployment with a smoke test, and roll back automatically if either step fails. A second pipeline, `promote`, deploys the same image to production when you create a release tag. Then you merge a bad change on purpose and watch the pipeline protect dev. This lab uses what you built on all three days and puts lecture L12 into practice.
 
-**Time:** 105 minutes · **Lecture:** L12 Continuous delivery · **You need:** Lab 08 (or: run `~/devops-demos/scripts/catch-up.sh 09` on a fresh machine)
+**Lecture:** L12 Continuous delivery · **You need:** Lab 08 (or: run `~/devops-demos/scripts/catch-up.sh 09` on a fresh machine)
 
 ## Goals
 
@@ -35,7 +35,7 @@ NAME       READY   UP-TO-DATE   AVAILABLE   AGE
 postgres   1/1     1            1           2d
 ```
 
-## Part 1: Extend the pipeline (about 30 minutes)
+## Part 1: Extend the pipeline
 
 ### 1.1 Create a branch
 
@@ -332,7 +332,7 @@ You should see nine steps:
 test "$(grep -cE '^      - name:' .harness/ci.yaml)" = "9"
 -->
 
-## Part 2: The production overlay and the promotion pipeline (about 10 minutes)
+## Part 2: The production overlay and the promotion pipeline
 
 ### 2.1 The production overlay
 
@@ -488,7 +488,7 @@ spec:
             kubectl rollout status deployment/flight-status --timeout=120s
 ```
 
-## Part 3: The pull request and the first delivery to dev (about 15 minutes)
+## Part 3: The pull request and the first delivery to dev
 
 ### 3.1 Commit and push
 
@@ -581,7 +581,7 @@ dev_commit=$(curl -s http://flights-dev.localhost:8080/version | jq -r .commit)
 h_eq "$dev_commit" "$(git rev-parse HEAD)" "dev runs the commit at the top of main"
 -->
 
-## Part 4: Create the promotion pipeline (about 8 minutes)
+## Part 4: Create the promotion pipeline
 
 ### 4.1 Create the pipeline and its trigger
 
@@ -603,7 +603,7 @@ Creating a tag is a deliberate action by a person. That person decides that a ve
 
 Continuous delivery means every change on `main` could go to production at any time, and a person decides when. Continuous deployment means every change on `main` goes to production automatically. This pipeline does continuous delivery to production and continuous deployment to dev.
 
-## Part 5: Release version 1.0 to production (about 10 minutes)
+## Part 5: Release version 1.0 to production
 
 ### 5.1 Create and push the tag
 
@@ -654,7 +654,7 @@ Open http://flights.localhost:8080 in the browser. The page shows `environment p
 
 <!-- ui: browse http://flights.localhost:8080 -->
 
-## Part 6: A bad release and the automatic rollback (about 17 minutes)
+## Part 6: A bad release and the automatic rollback
 
 ### 6.1 Make a change that passes every test
 
@@ -743,7 +743,7 @@ h_eq "$dev_commit" "$(git rev-list -n 1 v1.0.0)" "dev still runs the v1.0.0 comm
 test "$(kubectl -n flightops-dev get deployment flight-status -o jsonpath='{.status.readyReplicas}')" = "2"
 -->
 
-## Part 7: Fix forward (about 8 minutes)
+## Part 7: Fix forward
 
 ### 7.1 Revert the change through a pull request
 
@@ -790,7 +790,7 @@ dev_commit=$(curl -s http://flights-dev.localhost:8080/version | jq -r .commit)
 h_eq "$dev_commit" "$(git rev-parse HEAD)" "dev runs the fixed commit"
 -->
 
-## Part 8: The Harness platform and the DORA metrics (about 7 minutes)
+## Part 8: The Harness platform and the DORA metrics
 
 ### 8.1 Map the pipeline to the Harness platform
 

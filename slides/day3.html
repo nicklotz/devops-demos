@@ -31,7 +31,7 @@
   <aside class="notes">
     Welcome back to day 3. Today follows the flight-status application from source code to a running service.
     This morning we package it as a container image, look at what a container is at the operating-system level,
-    and compare Docker Compose with Amazon ECS and Fargate. After lunch we deploy to Kubernetes and practise
+    and compare Docker Compose with Amazon ECS and Fargate. Then we deploy to Kubernetes and practise
     rollouts, failures and rollbacks. The last lab joins the work of all three days into one delivery pipeline:
     test, build, scan, deploy to dev, verify, promote to prod, and roll back when verification fails.
     Before we start, ask everyone to run "docker ps" on their lab machine. It should list the harness container,
@@ -62,21 +62,17 @@
 
 <section>
   <h2>Day 3 agenda</h2>
-  <table class="agenda">
-    <tr><th>Time (CT)</th><th>Session</th></tr>
-    <tr><td>09:00</td><td>Day 2 recap</td></tr>
-    <tr><td>09:10</td><td>Containers</td></tr>
-    <tr><td>09:45</td><td>Docker Compose, Amazon ECS and Fargate</td></tr>
-    <tr><td>10:10</td><td>Break</td></tr>
-    <tr><td>10:20</td><td>Lab 07: Build, scan and describe a container</td></tr>
-    <tr><td>11:35</td><td>Kubernetes</td></tr>
-    <tr><td>12:10</td><td>Lunch</td></tr>
-    <tr><td>12:55</td><td>Lab 08: Kubernetes deployments, rollouts and rollbacks</td></tr>
-    <tr><td>14:25</td><td>Break</td></tr>
-    <tr><td>14:35</td><td>Continuous delivery</td></tr>
-    <tr><td>15:05</td><td>Lab 09: End-to-end delivery pipeline</td></tr>
-    <tr><td>16:50</td><td>Course summary and feedback</td></tr>
-  </table>
+  <ol>
+    <li>Day 2 recap</li>
+    <li>Lecture: Containers</li>
+    <li>Lecture: Docker Compose, Amazon ECS and Fargate</li>
+    <li>Lab 07: Build, scan and describe a container</li>
+    <li>Lecture: Kubernetes</li>
+    <li>Lab 08: Kubernetes deployments, rollouts and rollbacks</li>
+    <li>Lecture: Continuous delivery</li>
+    <li>Lab 09: End-to-end delivery pipeline</li>
+    <li>Course summary and feedback</li>
+  </ol>
   <aside class="notes">
     Today has four lectures and three labs. The two morning lectures are about the artifact: what a container image
     is and how the same image runs on your laptop, in Docker Compose and in Amazon ECS. The afternoon lectures are about
@@ -475,7 +471,7 @@ CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]<
     with a load balancer, and rolls out a new revision when you update it.
     A cluster is a logical group of services and tasks. With Fargate it contains no servers you manage.
     Map to Kubernetes for the class: a task definition is close to a Pod template, a task to a Pod, and a service to a
-    Deployment plus a Service. We use that mapping again after lunch.
+    Deployment plus a Service. We use that mapping again later today.
   </aside>
 </section>
 
@@ -538,12 +534,11 @@ CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]<
   </ul>
   <aside class="notes">
     The image stays the same. The surroundings change.
-    The two roles are a common source of confusion, so spend a minute on them. The task execution role is used by the ECS
+    The two roles are a common source of confusion. The task execution role is used by the ECS
     agent before your code runs: pulling from ECR, fetching secrets, creating the log stream. The task role is assumed by
     your application code at run time, for example to read from an S3 bucket. Keep them separate so the application cannot
     read secrets meant for other services.
-    The load balancer checks each task's health and only sends traffic to healthy ones, which is the same idea as the
-    Kubernetes readiness probe after lunch.
+    The load balancer checks each task's health and only sends traffic to healthy ones, which is the same idea as the Kubernetes readiness probe in the next lecture.
     At United, the shared CDK library usually creates these pieces, so an application team mostly supplies the image and the
     task settings.
   </aside>
@@ -551,7 +546,7 @@ CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]<
 
 <section>
   <h2>Lab 07: Build, scan and describe a container</h2>
-  <p>75 minutes. Open <code>labs/07-containers.md</code> in the course repository.</p>
+  <p>Open <code>labs/07-containers.md</code> in the course repository.</p>
   <ul>
     <li>Write a Dockerfile, build the flight-status image and inspect its layers.</li>
     <li>Push the image to the local registry.</li>
@@ -565,7 +560,7 @@ CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]<
     Common problems: forgetting the trailing dot in "docker build -t ... .", and the registry push failing if Docker was
     not restarted after the insecure-registry setting in Lab 01. The troubleshooting section of the lab covers both.
     Fast finishers can try the "Going further" task that compares the slim and full Python base images in a scan.
-    We restart at 11:35 with Kubernetes.
+    
   </aside>
 </section>
 
@@ -969,7 +964,7 @@ CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]<
 
 <section>
   <h2>Lab 08: Kubernetes deployments, rollouts and rollbacks</h2>
-  <p>90 minutes. Open <code>labs/08-kubernetes-rollouts.md</code> in the course repository.</p>
+  <p>Open <code>labs/08-kubernetes-rollouts.md</code> in the course repository.</p>
   <ul>
     <li>Deploy the API with a Deployment, Service and Ingress, including probes, requests and limits.</li>
     <li>Scale it, delete a Pod and watch Kubernetes replace it.</li>
@@ -984,7 +979,7 @@ CMD ["uvicorn", "flightstatus.main:app", "--host", "0.0.0.0", "--port", "8000"]<
     start. A failing readiness probe gives Pods that run but never become ready. In both cases the old Pods keep
     serving; check that with the browser or curl.
     If the ResourceQuota rejects a Pod, the event explains it: "kubectl describe replicaset" shows the quota message.
-    We restart at 14:35.
+    
   </aside>
 </section>
 
@@ -1319,7 +1314,7 @@ return departures_board(flights)</code></pre>
 
 <section>
   <h2>Lab 09: End-to-end delivery pipeline</h2>
-  <p>105 minutes. Open <code>labs/09-end-to-end-delivery.md</code> in the course repository.</p>
+  <p>Open <code>labs/09-end-to-end-delivery.md</code> in the course repository.</p>
   <ul>
     <li>Build one pipeline: test, build, scan, push, deploy to dev and smoke test.</li>
     <li>Promote the same image to prod by pushing a release tag.</li>
@@ -1335,7 +1330,7 @@ return departures_board(flights)</code></pre>
     ready, the rollback step run, and the app in the browser still showing the previous version.
     Anyone who finishes early can try a "Going further" task, such as a tag rule that limits who may create release tags,
     or a smoke test for prod that reads the departures board.
-    We meet again at 16:50 for the summary.
+    
   </aside>
 </section>
 

@@ -4,46 +4,37 @@ A three-day, hands-on course on continuous integration, infrastructure as code, 
 
 The course follows one application through all three days: **flight-status**, a small Python web API that tracks flights and their status. On Day 1 you put it under continuous integration. On Day 2 you build its environments with Terraform and manage the credentials that the pipeline needs. On Day 3 you package it as a container, run it on Kubernetes and deliver it to a development and a production environment with one pipeline.
 
-## Schedule
-
-All times are US Central. Each day has two breaks and a lunch break.
+## Course outline
 
 **Day 1: Continuous integration**
 
-| Time | Session |
-|---|---|
-| 09:00 | Welcome and course overview |
-| 09:20 | Lecture: DevOps foundations |
-| 09:50 | Lecture: Version control and continuous integration |
-| 10:30 | [Lab 01: Lab environment and Harness Open Source](labs/01-lab-environment.md) (60 min) |
-| 11:30 | Lecture: Pipelines and Harness |
-| 12:45 | [Lab 02: Your first CI pipeline](labs/02-first-ci-pipeline.md) (90 min) |
-| 14:25 | Lecture: Testing and quality gates |
-| 14:55 | [Lab 03: Quality gates, pull requests and integration tests](labs/03-quality-gates.md) (120 min) |
+- Lecture: DevOps foundations
+- Lecture: Version control and continuous integration
+- [Lab 01: Lab environment and Harness Open Source](labs/01-lab-environment.md)
+- Lecture: Pipelines and Harness
+- [Lab 02: Your first CI pipeline](labs/02-first-ci-pipeline.md)
+- Lecture: Testing and quality gates
+- [Lab 03: Quality gates, pull requests and integration tests](labs/03-quality-gates.md)
 
 **Day 2: Infrastructure as code and credentials**
 
-| Time | Session |
-|---|---|
-| 09:10 | Lecture: Infrastructure as code concepts |
-| 09:40 | Lecture: Terraform, CloudFormation and the CDK |
-| 10:20 | [Lab 04: Terraform foundations on Kubernetes](labs/04-terraform-foundations.md) (120 min) |
-| 13:05 | Lecture: Infrastructure as code in pipelines |
-| 13:35 | [Lab 05: Terraform in the pipeline](labs/05-terraform-pipeline.md) (75 min) |
-| 15:00 | Lecture: Credential management |
-| 15:35 | [Lab 06: Managing credentials](labs/06-credentials.md) (75 min) |
+- Lecture: Infrastructure as code concepts
+- Lecture: Terraform, CloudFormation and the CDK
+- [Lab 04: Terraform foundations on Kubernetes](labs/04-terraform-foundations.md)
+- Lecture: Infrastructure as code in pipelines
+- [Lab 05: Terraform in the pipeline](labs/05-terraform-pipeline.md)
+- Lecture: Credential management
+- [Lab 06: Managing credentials](labs/06-credentials.md)
 
 **Day 3: Containers, Kubernetes and continuous delivery**
 
-| Time | Session |
-|---|---|
-| 09:10 | Lecture: Containers |
-| 09:45 | Lecture: Compose, Amazon ECS and Fargate |
-| 10:20 | [Lab 07: Build, scan and describe a container](labs/07-containers.md) (75 min) |
-| 11:35 | Lecture: Kubernetes |
-| 12:55 | [Lab 08: Kubernetes deployments, rollouts and rollbacks](labs/08-kubernetes-rollouts.md) (90 min) |
-| 14:35 | Lecture: Continuous delivery |
-| 15:05 | [Lab 09: End-to-end delivery pipeline](labs/09-end-to-end-delivery.md) (105 min) |
+- Lecture: Containers
+- Lecture: Compose, Amazon ECS and Fargate
+- [Lab 07: Build, scan and describe a container](labs/07-containers.md)
+- Lecture: Kubernetes
+- [Lab 08: Kubernetes deployments, rollouts and rollbacks](labs/08-kubernetes-rollouts.md)
+- Lecture: Continuous delivery
+- [Lab 09: End-to-end delivery pipeline](labs/09-end-to-end-delivery.md)
 
 The lecture slides are in [`slides/`](slides/). The PDF versions are in [`slides/pdf/`](slides/pdf/).
 
@@ -83,7 +74,7 @@ git clone https://github.com/nicklotz/devops-demos.git ~/devops-demos
 ~/devops-demos/scripts/catch-up.sh 04
 ```
 
-Replace `04` with the number of the lab you want to start. The script takes several minutes per lab. It is meant for a machine where you have not started the labs.
+Replace `04` with the number of the lab you want to start. The script is meant for a machine where you have not started the labs.
 
 ## What is in this repository
 

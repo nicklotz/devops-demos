@@ -6,7 +6,7 @@ You use a Harness secret in a pipeline, and see what happens when a step prints 
 You give the delivery pipeline of Day 3 its own identity with the smallest set of permissions it needs.
 You turn on secret scanning so a pushed key is rejected, and you rotate a credential.
 
-**Time:** 75 minutes · **Lecture:** L8 Credential management · **You need:** Lab 05 completed (or run `~/devops-demos/scripts/catch-up.sh 06` on a fresh machine)
+**Lecture:** L8 Credential management · **You need:** Lab 05 completed (or run `~/devops-demos/scripts/catch-up.sh 06` on a fresh machine)
 
 ## Goals
 
@@ -36,7 +36,7 @@ tfstate-default-platform   Opaque   1      1h
 2b7d9e1 Add departures board (#1)
 ```
 
-## Part 1: Find the credentials on your machine (about 15 minutes)
+## Part 1: Find the credentials on your machine
 
 An attacker who gets access to one machine looks for credentials first, because credentials open other systems.
 You do the same search on your lab machine.
@@ -201,7 +201,7 @@ Newer Terraform versions can keep some values out of the state (ephemeral values
 | Kubernetes Secret | Everyone allowed to `get secrets` in the namespace | Tight RBAC, encryption at rest |
 | Terraform state | Everyone who can read the backend | Restrict and encrypt the backend, keep secrets out of state |
 
-## Part 2: Secrets in a pipeline (about 15 minutes)
+## Part 2: Secrets in a pipeline
 
 The flight status team wants a pipeline step that calls a partner API.
 The API needs a key, and the key must not be in the repository.
@@ -436,7 +436,7 @@ The first run's log still contains the key.
 In real work, a secret that appeared in a log counts as exposed.
 You would rotate it (create a new key and revoke the old one) even after you fix the pipeline.
 
-## Part 3: A least-privilege identity for deployments (about 20 minutes)
+## Part 3: A least-privilege identity for deployments
 
 On Day 3, the delivery pipeline deploys the flight status service to dev and prod.
 It needs a credential for each environment.
@@ -771,7 +771,7 @@ code ~/deployer-dev.kubeconfig ~/deployer-prod.kubeconfig
 The Lab 09 pipeline uses these two secrets.
 In the Harness platform, each environment would have its own Kubernetes connector with its own credential.
 
-## Part 4: Secret scanning (about 10 minutes)
+## Part 4: Secret scanning
 
 Access control protects a secret after it is stored.
 Secret scanning stops a secret from being stored in Git in the first place.
@@ -849,7 +849,7 @@ Many teams also scan on the developer's machine with a pre-commit hook, using a 
 The hook stops the commit before the secret is in any Git history, even a local one.
 The two checks complement each other. The hook gives the fastest feedback. The server check cannot be skipped.
 
-## Part 5: Rotate a credential (about 15 minutes)
+## Part 5: Rotate a credential
 
 Rotation replaces a credential with a new one and revokes the old one.
 It limits how long a leaked credential stays useful.

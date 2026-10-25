@@ -2,7 +2,7 @@
 
 Continuous integration means that every change is built and tested automatically, soon after someone pushes it. In this lab you run the lint and the tests of the flight status service on your machine, write the same steps as a Harness pipeline, run it, and read the logs of failed runs. You then add a trigger, so that every push starts the pipeline without a click, and you use expressions and conditions to report on each run.
 
-**Time:** 90 minutes · **Lecture:** L3 Pipelines and Harness · **You need:** Lab 01. On a fresh machine, run `~/devops-demos/scripts/catch-up.sh 02` first (see the course README).
+**Lecture:** L3 Pipelines and Harness · **You need:** Lab 01. On a fresh machine, run `~/devops-demos/scripts/catch-up.sh 02` first (see the course README).
 
 ## Goals
 
@@ -25,7 +25,7 @@ docker ps --filter name=harness --format '{{.Names}} {{.Status}}'
 
 You should see `## main...origin/main`, one commit, and `harness Up ...`. If `docker ps` says "permission denied", run `newgrp docker` in this terminal first.
 
-## Part 1: Run the checks on your machine (about 15 minutes)
+## Part 1: Run the checks on your machine
 
 ### 1.1 Run the tests in a container
 
@@ -77,7 +77,7 @@ All checks passed!
 14 files already formatted
 ```
 
-## Part 2: Write the pipeline (about 20 minutes)
+## Part 2: Write the pipeline
 
 ### 2.1 Create the pipeline file
 
@@ -153,7 +153,7 @@ git push
 
 Nothing runs yet. Harness does not know about the file until you create a pipeline that points to it.
 
-## Part 3: Create and run the pipeline in Harness (about 15 minutes)
+## Part 3: Create and run the pipeline in Harness
 
 ### 3.1 Create the pipeline
 
@@ -194,7 +194,7 @@ Look for these details:
 
 The steps ran as containers on your own machine, started by the Harness container through the Docker socket. While a run is in progress, `docker ps` shows the step containers next to the `harness` container.
 
-## Part 4: Read a failed run (about 15 minutes)
+## Part 4: Read a failed run
 
 ### 4.1 Introduce a bug
 
@@ -272,7 +272,7 @@ Run the pipeline again from Harness. It is green again.
 h_wait flightops/flight-status ci success
 -->
 
-## Part 5: Run the pipeline on every push (about 10 minutes)
+## Part 5: Run the pipeline on every push
 
 ### 5.1 Add a push trigger
 
@@ -308,7 +308,7 @@ h_wait flightops/flight-status ci success
 
 Triggers in the Harness platform work the same way. They also support schedules (cron) and artifact events, such as a new image in a registry.
 
-## Part 6: Expressions and conditions (about 10 minutes)
+## Part 6: Expressions and conditions
 
 ### 6.1 Add a report step
 
@@ -393,7 +393,7 @@ Before each step's output, the log shows the script itself, in lines that start 
 
 The Harness platform uses a different expression syntax for the same information, for example `<+pipeline.sequenceId>` for the run number and `<+codebase.commitSha>` for the commit.
 
-## Part 7: A lint failure (about 5 minutes)
+## Part 7: A lint failure
 
 ### 7.1 Add an unused import
 

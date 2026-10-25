@@ -2,7 +2,7 @@
 
 In Lab 02 the pipeline checked `main` after each push. When it found a problem, the problem was already on `main`. In this lab you move the checks in front of `main`. You run the integration tests against a real PostgreSQL database, on your machine and in the pipeline, and you add a coverage threshold. You then protect `main` with a branch rule: changes arrive only through pull requests, and a pull request can merge only after the `ci` pipeline passes. Finally you deliver a new feature the way a team would: a branch, tests on your machine, a pull request, a failed check, a fix, a review and a merge.
 
-**Time:** 120 minutes · **Lecture:** L4 Testing and quality gates · **You need:** Lab 02. On a fresh machine, run `~/devops-demos/scripts/catch-up.sh 03` first (see the course README).
+**Lecture:** L4 Testing and quality gates · **You need:** Lab 02. On a fresh machine, run `~/devops-demos/scripts/catch-up.sh 03` first (see the course README).
 
 ## Goals
 
@@ -25,7 +25,7 @@ git log --oneline -3
 
 The `ci` pipeline from Lab 02 exists, with its push trigger, and its last run on `main` is green.
 
-## Part 1: Integration tests on your machine (about 20 minutes)
+## Part 1: Integration tests on your machine
 
 ### 1.1 Start a PostgreSQL container
 
@@ -112,7 +112,7 @@ The container was only for this test run. `docker rm -f` stops and deletes it.
 docker rm -f testdb
 ```
 
-## Part 2: A database service in the pipeline (about 20 minutes)
+## Part 2: A database service in the pipeline
 
 ### 2.1 Add a background step
 
@@ -192,7 +192,7 @@ The push trigger starts the pipeline. Open the run in Harness and look at:
 
 The Harness platform has the same step type, called a Background step, for services such as databases in a Build stage.
 
-## Part 3: Protect main (about 15 minutes)
+## Part 3: Protect main
 
 ### 3.1 Create a branch rule
 
@@ -252,7 +252,7 @@ git status --short --branch
 
 You should see `## main...origin/main`, without "ahead".
 
-## Part 4: Build a feature on a branch (about 30 minutes)
+## Part 4: Build a feature on a branch
 
 The feature is a departures board for one airport, at `GET /airports/{code}/departures`. It lists the flights that have not left yet, in the order in which they will leave. A delayed flight moves down the board.
 
@@ -609,7 +609,7 @@ You should see `50 passed, 6 skipped`.
 diff -q flightstatus/rules.py ~/devops-demos/solutions/lab03/flight-status/flightstatus/rules.py
 -->
 
-## Part 5: Open a pull request (about 20 minutes)
+## Part 5: Open a pull request
 
 ### 5.1 Commit and push the branch
 
@@ -706,7 +706,7 @@ h_wait_pr_check flightops/flight-status ci success
 
 Reload the pull request when the runs have finished. The `ci` check is green, and the merge button is available.
 
-## Part 6: Review and merge (about 10 minutes)
+## Part 6: Review and merge
 
 ### 6.1 Review the pull request
 
@@ -752,7 +752,7 @@ test -z "$(git status --porcelain)"
 grep -q 'def departures_board' flightstatus/rules.py
 -->
 
-## Part 7: What each gate caught (about 5 minutes)
+## Part 7: What each gate caught
 
 Look back at what stopped which problem in this lab:
 
