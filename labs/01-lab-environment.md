@@ -76,7 +76,6 @@ On some Ubuntu installations, a tool called `needrestart` opens a dialog after e
 
 ```bash
 if [ -d /etc/needrestart/conf.d ]; then echo "\$nrconf{restart} = 'a';" | sudo tee /etc/needrestart/conf.d/90-course.conf > /dev/null; fi
-sudo apt-get update
 sudo apt-get install -y git curl jq ca-certificates gnupg
 git --version
 curl --version | head -1
