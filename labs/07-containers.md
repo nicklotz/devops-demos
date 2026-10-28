@@ -34,7 +34,7 @@ k3d-devops-server-0
 k3d-devops-serverlb
 k3d-registry.localhost
 NAME                  STATUS   ROLES           AGE   VERSION
-k3d-devops-server-0   Ready    control-plane   1d    v1.35.5+k3s1
+k3d-devops-server-0   Ready    control-plane   1d    v1.34.12+k3s1
 ```
 
 `git status --short` prints nothing when you have no uncommitted changes. If it lists files, commit or discard them before you continue.

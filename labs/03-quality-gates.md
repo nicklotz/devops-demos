@@ -25,6 +25,28 @@ git log --oneline -3
 
 The `ci` pipeline from Lab 02 exists, with its push trigger, and its last run on `main` is green.
 
+In this lab you paste four Python files into VS Code.
+The copy button leaves out the line break after the last line, and ruff fails a Python file that does not end with one.
+Lab 01 turned on the VS Code setting that adds this line break, but only on machines that had no VS Code settings file yet.
+The next command adds the setting to the settings file you have, and keeps your other settings.
+
+```bash
+mkdir -p ~/.config/Code/User
+f=~/.config/Code/User/settings.json
+[ -s "$f" ] || echo '{}' > "$f"
+jq '. + {"files.insertFinalNewline": true}' "$f" > /tmp/settings.json && mv /tmp/settings.json "$f"
+cat "$f"
+```
+
+You should see `"files.insertFinalNewline": true` in the output, together with any settings you had before.
+VS Code applies the change without a restart.
+If `jq` reports a parse error, your settings file contains comments, which `jq` cannot read.
+In that case open **File** > **Preferences** > **Settings** in VS Code, search for `Insert Final Newline`, and turn it on.
+
+<!-- test
+grep -q '"files.insertFinalNewline": true' ~/.config/Code/User/settings.json
+-->
+
 ## Part 1: Integration tests on your machine
 
 ### 1.1 Start a PostgreSQL container
@@ -120,7 +142,8 @@ The pipeline needs a database too. A `background` step starts a container that k
 
 The new version also adds a coverage threshold. `--cov-fail-under=90` makes pytest end with an error when coverage is below 90%. The pipeline then fails, even when every test passed. The `report` step from Lab 02 is not part of this version.
 
-Replace the content of `.harness/ci.yaml` with:
+Replace the content of `.harness/ci.yaml` with the content below.
+In VS Code, press Ctrl+A to select all the old content, then paste. The paste replaces the selection.
 
 <!-- file: ~/flight-status/.harness/ci.yaml -->
 ```yaml
@@ -296,7 +319,7 @@ The ordering rule belongs in `rules.py`, next to the other business rules, so th
 - `FINISHED`, the statuses after which a flight leaves the board.
 - `departures_board()`, which keeps the flights from one airport that are not finished, and sorts them.
 
-Replace the content of `flightstatus/rules.py` with the code below. The new parts are `FINISHED` after `ALLOWED_TRANSITIONS`, and `departures_board()` at the end of the file.
+Replace the content of `flightstatus/rules.py` with the code below (Ctrl+A, then paste). The new parts are `FINISHED` after `ALLOWED_TRANSITIONS`, and `departures_board()` at the end of the file.
 
 <!-- file: ~/flight-status/flightstatus/rules.py -->
 ```python
@@ -363,7 +386,7 @@ def departures_board(flights: list[Flight], airport: str) -> list[Flight]:
 
 The endpoint is a thin layer. It reads all flights from the store and passes them to `departures_board()`. Business logic stays out of the endpoint, which keeps it easy to test.
 
-Replace the content of `flightstatus/main.py` with the code below. The new parts are `departures_board` in the import from `.rules`, and the route `/airports/{code}/departures` just before the home page route (`/`).
+Replace the content of `flightstatus/main.py` with the code below (Ctrl+A, then paste). The new parts are `departures_board` in the import from `.rules`, and the route `/airports/{code}/departures` just before the home page route (`/`).
 
 <!-- file: ~/flight-status/flightstatus/main.py -->
 ```python

@@ -6,7 +6,7 @@ metadata:
   name: devops
 servers: 1
 agents: 0
-image: rancher/k3s:v1.35.5-k3s1
+image: rancher/k3s:v1.34.12-k3s1
 network: devops
 kubeAPI:
   hostIP: "0.0.0.0"

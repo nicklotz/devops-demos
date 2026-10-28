@@ -96,12 +96,15 @@ k3d version v5.9.0
 k3s version v1.35.5-k3s1 (default)
 ```
 
-### 1.2 Install kubectl 1.35
+The k3s line shows the version that k3d uses when a cluster configuration does not name one.
+The cluster configuration you write in Part 2 names Kubernetes 1.34.12.
+
+### 1.2 Install kubectl 1.34
 
 kubectl is the command-line client for the Kubernetes API.
 Kubernetes supports a kubectl that is at most one minor version older or newer than the API server.
 This is the version skew policy.
-The cluster you create in Part 2 runs Kubernetes 1.35, so you install kubectl from the repository for the 1.35 line.
+The cluster you create in Part 2 runs Kubernetes 1.34, so you install kubectl from the repository for the 1.34 line.
 
 The steps follow the same pattern you used for Docker and VS Code in Lab 01:
 
@@ -111,17 +114,17 @@ The steps follow the same pattern you used for Docker and VS Code in Lab 01:
 
 ```bash
 sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | sudo gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
 sudo apt-get update
 sudo apt-get install -y kubectl
 kubectl version --client
 ```
 
-You should see a client version that starts with `v1.35`:
+You should see a client version that starts with `v1.34`:
 
 ```text
-Client Version: v1.35.9
+Client Version: v1.34.13
 Kustomize Version: v5.7.1
 ```
 
@@ -134,20 +137,37 @@ Terraform reads configuration files that describe infrastructure and makes the r
 The pipeline you build in Lab 05 runs Terraform in the container image `hashicorp/terraform:1.17.0`.
 You install the same version here, so your local runs and the pipeline's runs behave the same way.
 
-`terraform=1.17.0-1` asks apt for one exact package version.
-`apt-mark hold` stops a later `apt-get upgrade` from replacing it.
+HashiCorp publishes every Terraform version as a zip file that contains one program, `terraform`.
+The zip file works on every Linux release. HashiCorp's apt repository only has packages for recent Ubuntu releases.
+You install Terraform the same way as k3d: download the file and the published checksums, check the download, then copy the program to `/usr/local/bin`.
+`unzip` extracts zip files. Not every Ubuntu installation includes it, so you install it first.
 
 ```bash
-wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo "$VERSION_CODENAME") main" | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y terraform=1.17.0-1
-sudo apt-mark hold terraform
+sudo apt-get install -y unzip
+cd ~/downloads
+curl -fsSLO https://releases.hashicorp.com/terraform/1.17.0/terraform_1.17.0_linux_amd64.zip
+curl -fsSLO https://releases.hashicorp.com/terraform/1.17.0/terraform_1.17.0_SHA256SUMS
+grep 'linux_amd64.zip$' terraform_1.17.0_SHA256SUMS | sha256sum --check
+```
+
+You should see:
+
+```text
+terraform_1.17.0_linux_amd64.zip: OK
+```
+
+Only install the program when the check says `OK`.
+`unzip` takes the file `terraform` out of the zip file, and `install` copies it to `/usr/local/bin`.
+
+```bash
+unzip -o terraform_1.17.0_linux_amd64.zip terraform
+sudo install -m 0755 terraform /usr/local/bin/terraform
 terraform version
 ```
 
 ```text
-terraform set on hold.
+Archive:  terraform_1.17.0_linux_amd64.zip
+  inflating: terraform
 Terraform v1.17.0
 on linux_amd64
 ```
@@ -156,7 +176,7 @@ Terraform may add a note that a newer version is available. You can ignore it.
 
 <!-- test
 k3d version | grep -q 'v5.9.0'
-kubectl version --client | grep -q 'v1.35'
+kubectl version --client | grep -q 'v1.34'
 terraform version | grep -q 'v1.17.0'
 -->
 
@@ -220,7 +240,7 @@ metadata:
   name: devops
 servers: 1
 agents: 0
-image: rancher/k3s:v1.35.5-k3s1
+image: rancher/k3s:v1.34.12-k3s1
 network: devops
 kubeAPI:
   hostIP: "0.0.0.0"
@@ -240,7 +260,7 @@ What each setting does:
 |---|---|
 | `metadata.name: devops` | The cluster name. Container names and the kubectl context are derived from it. |
 | `servers: 1`, `agents: 0` | One k3s server, which runs the control plane and your workloads. EKS runs the control plane for you and adds worker nodes. |
-| `image` | The k3s version, pinned to Kubernetes 1.35.5. |
+| `image` | The k3s version, pinned to Kubernetes 1.34.12. Kubernetes 1.35 and newer do not start on machines that use the older cgroup v1, such as Ubuntu 20.04. Kubernetes 1.34 runs on all lab machines. |
 | `network: devops` | The Docker network you created in Lab 01. Harness is already on it, so pipeline steps can reach the cluster by name (Lab 05). |
 | `kubeAPI` | Publishes the Kubernetes API on port 6550 of your machine. |
 | `ports: 8080:80` | Publishes the cluster's HTTP ingress on port 8080 of your machine, through a load balancer container. |
@@ -276,7 +296,7 @@ kubectl cluster-info
 ```text
 k3d-devops
 NAME                  STATUS   ROLES           AGE   VERSION
-k3d-devops-server-0   Ready    control-plane   40s   v1.35.5+k3s1
+k3d-devops-server-0   Ready    control-plane   40s   v1.34.12+k3s1
 Kubernetes control plane is running at https://0.0.0.0:6550
 CoreDNS is running at https://0.0.0.0:6550/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 Metrics-server is running at https://0.0.0.0:6550/api/v1/namespaces/kube-system/services/https:metrics-server:https/proxy
@@ -299,7 +319,7 @@ docker network inspect devops --format '{{range .Containers}}{{.Name}}{{"\n"}}{{
 ```text
 NAMES                    IMAGE                            PORTS
 k3d-devops-serverlb      ghcr.io/k3d-io/k3d-proxy:5.9.0   0.0.0.0:6550->6443/tcp, 0.0.0.0:8080->80/tcp
-k3d-devops-server-0      rancher/k3s:v1.35.5-k3s1
+k3d-devops-server-0      rancher/k3s:v1.34.12-k3s1
 k3d-registry.localhost   registry:2                       0.0.0.0:5000->5000/tcp
 harness                  harness/harness:3.3.0            0.0.0.0:3000->3000/tcp, 0.0.0.0:3022->3022/tcp
 ```
@@ -1256,9 +1276,13 @@ Create `~/platform/.gitignore`:
 
 ### 6.3 Commit and push
 
+`git init -q` creates the repository without printing messages. `git checkout -b main` names its first branch `main`.
+Newer Git versions can do both with `git init -b main`, but that option needs Git 2.28 or newer, and some lab machines have an older Git.
+
 ```bash
 cd ~/platform
-git init -b main
+git init -q
+git checkout -b main
 git add .
 git status --short
 ```
@@ -1266,6 +1290,7 @@ git status --short
 Check the list before you commit. There must be no `.tfstate` file and nothing under `.terraform/`.
 
 ```text
+Switched to a new branch 'main'
 A  .gitignore
 A  .terraform.lock.hcl
 A  cluster/k3d-devops.yaml

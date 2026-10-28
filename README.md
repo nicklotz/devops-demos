@@ -53,8 +53,8 @@ Nothing else is installed in advance. You install every tool during the labs, an
 | git, curl, jq, VS Code | Ubuntu and Microsoft packages | Lab 01 |
 | Docker Engine | 29.x | Lab 01 |
 | Harness Open Source | 3.3.0 | Lab 01 |
-| k3d (k3s v1.35) | 5.9.0 | Lab 04 |
-| kubectl | 1.35 | Lab 04 |
+| k3d (k3s v1.34) | 5.9.0 | Lab 04 |
+| kubectl | 1.34 | Lab 04 |
 | Terraform | 1.17.0 | Lab 04 |
 | Trivy | 0.75.0 | Lab 07 |
 
