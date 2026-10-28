@@ -847,7 +847,7 @@ You write the database once, and call it once per environment.
 Teams publish modules so that other teams create infrastructure the same way.
 At United, the shared CDK library plays this role for AWS: it packages approved patterns as reusable constructs.
 
-The module goes into its own folder, `modules/postgres`, with four files.
+The module goes into its own folder, `modules/postgres`, with four files: `versions.tf`, `variables.tf`, `main.tf` and `outputs.tf`.
 
 ```bash
 mkdir -p ~/platform/modules/postgres
@@ -855,7 +855,7 @@ mkdir -p ~/platform/modules/postgres
 
 ### 5.2 Write the module
 
-The module's providers. A module declares the providers it uses. The root configuration chooses the versions.
+Create `~/platform/modules/postgres/versions.tf` with the module's providers. A module declares the providers it uses. The root configuration chooses the versions.
 
 <!-- file: ~/platform/modules/postgres/versions.tf -->
 ```hcl
@@ -871,7 +871,7 @@ terraform {
 }
 ```
 
-The module's inputs. `namespace` has no default, so every caller must set it. `image` and `storage` have defaults that a caller may override.
+Create `~/platform/modules/postgres/variables.tf` with the module's inputs. `namespace` has no default, so every caller must set it. `image` and `storage` have defaults that a caller may override.
 
 <!-- file: ~/platform/modules/postgres/variables.tf -->
 ```hcl
@@ -893,7 +893,7 @@ variable "storage" {
 }
 ```
 
-The module's resources. Read the comments while you create the file:
+Create `~/platform/modules/postgres/main.tf` with the module's resources. Read the comments while you create the file:
 
 - `random_password` generates a 24-character password and keeps it in the state, so it stays the same on every run.
 - The Secret `flight-status-db` holds the database user, password and name, plus a ready-made `DATABASE_URL`. On Day 3, the flight status service reads that URL.
@@ -1034,7 +1034,7 @@ resource "kubernetes_service_v1" "db" {
 }
 ```
 
-The module's output. An output passes a value back to the caller. Here it is the name of the Secret.
+Create `~/platform/modules/postgres/outputs.tf` with the module's output. An output passes a value back to the caller. Here it is the name of the Secret.
 
 <!-- file: ~/platform/modules/postgres/outputs.tf -->
 ```hcl
