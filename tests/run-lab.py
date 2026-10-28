@@ -149,8 +149,14 @@ class Shell:
             if not line:
                 return False, out + ["(shell exited)"]
             line = line.rstrip("\n")
-            if line.startswith(marker):
-                failed = line.split()[-1] != "0"
+            if marker in line:
+                # Output without a final line break (for example `cat` of a file that does not end
+                # with one) puts the marker at the end of the last output line.
+                before, _, status = line.partition(marker)
+                if before:
+                    out.append(before)
+                    self.log(f"    {before}")
+                failed = status.split() != ["0"]
                 break
             out.append(line)
             self.log(f"    {line}")
