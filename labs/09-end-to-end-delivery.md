@@ -75,6 +75,7 @@ In the next steps you add the new steps one at a time. Open `.harness/ci.yaml` i
             # Plugin inputs are strings. Separate several values with commas.
             tags: ${{ build.commit }}
             build_args: APP_VERSION=1.0.${{ build.number }},GIT_COMMIT=${{ build.commit }}
+            custom_dns: 172.31.0.2
 ```
 
 A plugin step runs a prebuilt container image that does one job. The `docker` plugin starts its own Docker engine inside the step container, builds the image from your Dockerfile, and pushes it.
@@ -82,6 +83,7 @@ A plugin step runs a prebuilt container image that does one job. The `docker` pl
 - `registry` and `repo` name the registry and the image. `insecure: true` allows the plain HTTP registry, as `insecure-registries` did for your own Docker engine in Lab 01.
 - `tags: ${{ build.commit }}` tags the image with the full commit SHA. Each image is linked to one commit, and no later build overwrites it. This is the "build once" half of "build once, promote the same artifact".
 - `build_args` sets the version to `1.0.<build number>` and records the commit. These are the same build arguments you passed by hand in Lab 07.
+- `custom_dns` sets the DNS server for the plugin's own Docker engine. Without it, that engine asks Google's public DNS servers. Some networks, including the lab network, block those servers, and `pip install` in the Dockerfile then cannot find PyPI. `172.31.0.2` is the DNS server of the AWS network that your lab machine runs in. On another network, `resolvectl status | grep 'DNS Servers'` shows the address to use.
 - Harness passes plugin inputs to the plugin as environment variables. They must be strings. A YAML list (`- value` on separate lines) is ignored, and the plugin then pushes only the tag `latest`. Several values are separated by commas.
 
 In the Harness platform, the "Build and Push to Docker Registry" step does this job, with a connector that holds the registry credentials (Amazon ECR at United).
@@ -253,6 +255,7 @@ spec:
             # Plugin inputs are strings. Separate several values with commas.
             tags: ${{ build.commit }}
             build_args: APP_VERSION=1.0.${{ build.number }},GIT_COMMIT=${{ build.commit }}
+            custom_dns: 172.31.0.2
       - name: scan
         type: run
         spec:

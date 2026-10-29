@@ -54,6 +54,7 @@ spec:
             # Plugin inputs are strings. Separate several values with commas.
             tags: ${{ build.commit }}
             build_args: APP_VERSION=1.0.${{ build.number }},GIT_COMMIT=${{ build.commit }}
+            custom_dns: 172.31.0.2
       - name: scan
         type: run
         spec:
