@@ -236,3 +236,12 @@ h_eq() { # ACTUAL EXPECTED MESSAGE
 h_contains() { # TEXT MESSAGE  (reads stdin)
   if ! grep -qF -- "$1"; then echo "check failed: ${2:-text not found}: '$1'" >&2; return 1; fi
 }
+
+h_get() { # URL: GET with retries. While old pods stop during a rollout, the ingress can answer 502 for a moment.
+  local i
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    curl -sf "$1" && return 0
+    sleep 1
+  done
+  echo "check failed: no successful answer from $1" >&2; return 1
+}

@@ -67,9 +67,10 @@ trivy_0.75.0_Linux-64bit.deb: OK
 ### 1.2 Install the package
 
 `apt-get install` with the path to a `.deb` file installs that file, and any packages it needs from the Ubuntu repositories.
+`-o DPkg::Lock::Timeout=300` makes apt wait up to five minutes if Ubuntu's automatic updates are installing packages at the same moment, instead of failing.
 
 ```bash
-sudo apt-get install -y ./trivy_0.75.0_Linux-64bit.deb
+sudo apt-get -o DPkg::Lock::Timeout=300 install -y ./trivy_0.75.0_Linux-64bit.deb
 trivy --version
 cd ~
 ```

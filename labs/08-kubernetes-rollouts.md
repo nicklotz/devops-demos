@@ -67,6 +67,7 @@ A Deployment tells Kubernetes which container to run, how many copies (replicas)
 | `env` with `secretKeyRef` | Sets `DATABASE_URL` from the Secret `flight-status-db`. |
 | `readinessProbe` on `/ready` | Kubernetes calls `/ready` every 5 seconds. After 3 failures in a row, the pod counts as not ready and stops receiving traffic. Kubernetes does not restart it. |
 | `livenessProbe` on `/health` | Kubernetes calls `/health` every 10 seconds. After 3 failures in a row, the kubelet restarts the container. `/health` does not check the database on purpose. A restart does not fix a database problem. |
+| `lifecycle.preStop` | Before Kubernetes stops a container, it waits 5 seconds. Removing a pod from the Service and from the ingress takes a moment. Without the pause, a few requests can still reach a pod that is already shutting down, and fail with `502 Bad Gateway`. |
 | `resources.requests` | What the scheduler reserves for the container on a node: 0.1 CPU and 128 MiB of memory. |
 | `resources.limits` | The maximum. A container that uses more CPU than its limit is slowed down. A container that uses more memory than its limit is stopped (OOMKilled). The namespace quota from Lab 04 counts the limits. |
 | `securityContext` | `runAsNonRoot: true` makes the kubelet refuse to start the container as root. This check works because the image sets a numeric user (`USER 10001`, Lab 07). `allowPrivilegeEscalation: false` stops a process from gaining more rights than its parent. |
@@ -128,6 +129,12 @@ spec:
               port: http
             periodSeconds: 10
             failureThreshold: 3
+          # Keep serving for 5 seconds after the pod is told to stop, while the
+          # Service and the ingress stop sending requests to it.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
           resources:
             requests:
               cpu: 100m
@@ -339,8 +346,8 @@ You should see:
 The service uses the dev database. On its first start it created its table and loaded the sample flights.
 
 <!-- test
-curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.0.0" and .environment == "dev"' > /dev/null
-curl -s http://flights-dev.localhost:8080/ready | jq -e '.storage == "postgres"' > /dev/null
+h_get http://flights-dev.localhost:8080/version | jq -e '.version == "1.0.0" and .environment == "dev"' > /dev/null
+h_get http://flights-dev.localhost:8080/ready | jq -e '.storage == "postgres"' > /dev/null
 -->
 
 Open http://flights-dev.localhost:8080 in the browser. The page lists the flights and shows `Version 1.0.0 · environment dev`.
@@ -528,7 +535,7 @@ REVISION  CHANGE-CAUSE
 The old ReplicaSet still exists with 0 pods. Kubernetes keeps it for a rollback. `CHANGE-CAUSE` is empty because nobody recorded a reason. A delivery pipeline keeps that record instead: each Harness execution shows which commit and image it deployed.
 
 <!-- test
-curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
+h_get http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
 -->
 
 ## Part 5: Failure 1, an image that does not exist
@@ -589,7 +596,7 @@ kubectl -n flightops-dev get pods -l app=flight-status
 The failed pod is gone, and two pods are running. The cluster matches Git again (`newTag: "1.1.0"`).
 
 <!-- test
-curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
+h_get http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
 test "$(kubectl -n flightops-dev get deployment flight-status -o jsonpath='{.status.readyReplicas}')" = "2"
 -->
 
@@ -638,7 +645,7 @@ The old pods still serve version 1.1.0, for the same reason as in Part 5: the ne
 <!-- test
 POD=$(kubectl -n flightops-dev get pods -l app=flight-status --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
 ( kubectl -n flightops-dev logs "$POD" --tail=50 2>/dev/null || true; kubectl -n flightops-dev logs "$POD" --previous --tail=50 2>/dev/null || true ) | grep -q "password authentication failed"
-curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
+h_get http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
 -->
 
 ### 6.3 Roll back
@@ -711,8 +718,8 @@ curl -s http://flights-dev.localhost:8080/ready; echo
 You should see `{"status":"ready","storage":"postgres"}`. The app pods became ready again without a restart. The data is still there, because PostgreSQL keeps its files on the persistent volume claim that Terraform created. The Deployment `postgres` has one replica again, as Terraform expects, so the next `terraform plan` shows no drift.
 
 <!-- test
-curl -s http://flights-dev.localhost:8080/ready | jq -e '.status == "ready"' > /dev/null
-curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
+h_get http://flights-dev.localhost:8080/ready | jq -e '.status == "ready"' > /dev/null
+h_get http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
 -->
 
 ### 7.4 What the three failures have in common
@@ -813,7 +820,7 @@ The `main` branch now contains the manifests, and dev runs version 1.1.0 with tw
 <!-- test
 git show HEAD:k8s/dev/kustomization.yaml | grep -q 'newTag: "1.1.0"'
 test "$(kubectl -n flightops-dev get deployment flight-status -o jsonpath='{.status.readyReplicas}')" = "2"
-curl -s http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
+h_get http://flights-dev.localhost:8080/version | jq -e '.version == "1.1.0"' > /dev/null
 -->
 
 <!-- runner: stop -->

@@ -49,6 +49,12 @@ spec:
               port: http
             periodSeconds: 10
             failureThreshold: 3
+          # Keep serving for 5 seconds after the pod is told to stop, while the
+          # Service and the ingress stop sending requests to it.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
           resources:
             requests:
               cpu: 100m

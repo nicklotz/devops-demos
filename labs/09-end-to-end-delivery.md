@@ -59,7 +59,7 @@ Your `.harness/ci.yaml` from Lab 03 has four steps. You add five more. The table
 
 Pull requests build and scan the image, so a change that breaks the image fails before anyone merges it. Only merged code reaches an environment. Because the branch rule from Lab 03 blocks direct pushes, every push to `main` is a merged pull request.
 
-In the next steps you add the new steps one at a time. Open `.harness/ci.yaml` in VS Code. Add each step at the end of the `steps` list, after the step from the previous section. Each `- name:` line starts with six spaces, like the existing steps. In step 1.8 you compare your file with the complete version.
+In the next steps you add the new steps one at a time. Open `.harness/ci.yaml` in VS Code. Add each step at the end of the `steps` list, after the step from the previous section. Each `- name:` line starts with six spaces, like the existing steps. Before you paste, put the cursor at the very start of a new, empty line, with no spaces in front of it. Otherwise VS Code adds its own indentation to the first pasted line. In step 1.8 you compare your file with the complete version. If the indentation goes wrong, replace the whole file with that version.
 
 ### 1.3 Build and push the image
 
@@ -605,7 +605,7 @@ The build number in your version differs. Check that three values agree: the com
 This image was built from the merge commit on `main`, not from the pull request's commit. The pull request image tested the change. The `main` image is the release candidate that dev runs and that production receives later.
 
 <!-- test
-dev_commit=$(curl -s http://flights-dev.localhost:8080/version | jq -r .commit)
+dev_commit=$(h_get http://flights-dev.localhost:8080/version | jq -r .commit)
 h_eq "$dev_commit" "$(git rev-parse HEAD)" "dev runs the commit at the top of main"
 -->
 
@@ -719,8 +719,8 @@ flight-status   3/3     3            3           40s
 Dev and production run the same version and the same commit. Only the environment differs. Production received the same image that was built once, scanned once and tested in dev.
 
 <!-- test
-prod_commit=$(curl -s http://flights.localhost:8080/version | jq -r .commit)
-dev_commit=$(curl -s http://flights-dev.localhost:8080/version | jq -r .commit)
+prod_commit=$(h_get http://flights.localhost:8080/version | jq -r .commit)
+dev_commit=$(h_get http://flights-dev.localhost:8080/version | jq -r .commit)
 h_eq "$prod_commit" "$dev_commit" "prod and dev run the same commit"
 h_eq "$prod_commit" "$(git rev-list -n 1 v1.0.0)" "prod runs the commit of tag v1.0.0"
 test "$(kubectl -n flightops-prod get deployment flight-status -o jsonpath='{.status.readyReplicas}')" = "3"
@@ -842,7 +842,7 @@ The tests did not catch this problem because no test runs the manifests against 
 - Smaller, more frequent changes, so that a failed deployment points to one change.
 
 <!-- test
-dev_commit=$(curl -s http://flights-dev.localhost:8080/version | jq -r .commit)
+dev_commit=$(h_get http://flights-dev.localhost:8080/version | jq -r .commit)
 h_eq "$dev_commit" "$(git rev-list -n 1 v1.0.0)" "dev still runs the v1.0.0 commit after the rollback"
 test "$(kubectl -n flightops-dev get deployment flight-status -o jsonpath='{.status.readyReplicas}')" = "2"
 -->
@@ -906,7 +906,7 @@ git rev-parse HEAD
 The probe path is `/ready` again. Dev runs a new version with the commit at the top of `main`. Production still runs `v1.0.0`. To release the fix to production, you would create and push the tag `v1.0.1`.
 
 <!-- test
-dev_commit=$(curl -s http://flights-dev.localhost:8080/version | jq -r .commit)
+dev_commit=$(h_get http://flights-dev.localhost:8080/version | jq -r .commit)
 h_eq "$dev_commit" "$(git rev-parse HEAD)" "dev runs the fixed commit"
 -->
 
