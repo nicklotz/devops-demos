@@ -67,7 +67,6 @@ A Deployment tells Kubernetes which container to run, how many copies (replicas)
 | `env` with `secretKeyRef` | Sets `DATABASE_URL` from the Secret `flight-status-db`. |
 | `readinessProbe` on `/ready` | Kubernetes calls `/ready` every 5 seconds. After 3 failures in a row, the pod counts as not ready and stops receiving traffic. Kubernetes does not restart it. |
 | `livenessProbe` on `/health` | Kubernetes calls `/health` every 10 seconds. After 3 failures in a row, the kubelet restarts the container. `/health` does not check the database on purpose. A restart does not fix a database problem. |
-| `lifecycle.preStop` | Before Kubernetes stops a container, it waits 5 seconds. Removing a pod from the Service and from the ingress takes a moment. Without the pause, a few requests can still reach a pod that is already shutting down, and fail with `502 Bad Gateway`. |
 | `resources.requests` | What the scheduler reserves for the container on a node: 0.1 CPU and 128 MiB of memory. |
 | `resources.limits` | The maximum. A container that uses more CPU than its limit is slowed down. A container that uses more memory than its limit is stopped (OOMKilled). The namespace quota from Lab 04 counts the limits. |
 | `securityContext` | `runAsNonRoot: true` makes the kubelet refuse to start the container as root. This check works because the image sets a numeric user (`USER 10001`, Lab 07). `allowPrivilegeEscalation: false` stops a process from gaining more rights than its parent. |
@@ -129,12 +128,6 @@ spec:
               port: http
             periodSeconds: 10
             failureThreshold: 3
-          # Keep serving for 5 seconds after the pod is told to stop, while the
-          # Service and the ingress stop sending requests to it.
-          lifecycle:
-            preStop:
-              sleep:
-                seconds: 5
           resources:
             requests:
               cpu: 100m
